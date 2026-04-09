@@ -1,6 +1,6 @@
 'use client'
 
-import { Script, deleteScript } from '@/lib/storage'
+import { Script } from '@/lib/storage'
 import { TeleprompterSettings } from '@/lib/useSettings'
 import { useState } from 'react'
 
