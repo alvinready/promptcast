@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ColorTheme } from './theme'
 
 export interface TeleprompterSettings {
   fontSize: number
@@ -13,6 +14,7 @@ export interface TeleprompterSettings {
   textAlign: 'left' | 'center' | 'right'
   lineHeight: number
   padding: number
+  theme: ColorTheme
 }
 
 const DEFAULTS: TeleprompterSettings = {
@@ -26,6 +28,7 @@ const DEFAULTS: TeleprompterSettings = {
   textAlign: 'center',
   lineHeight: 1.9,
   padding: 80,
+  theme: 'dark',
 }
 
 const STORAGE_KEY = 'promptcast_settings'
@@ -42,7 +45,17 @@ export function useTeleprompterSettings() {
 
   const update = (patch: Partial<TeleprompterSettings>) => {
     setSettings(prev => {
-      const next = { ...prev, ...patch }
+      // When theme changes, auto-reset textColor to a legible default for that theme
+      const themeChanged = patch.theme && patch.theme !== prev.theme
+      const autoTextColor = themeChanged
+        ? (patch.theme === 'light' ? '#1c1814' : '#f0ede8')
+        : undefined
+
+      const next = {
+        ...prev,
+        ...patch,
+        ...(autoTextColor ? { textColor: autoTextColor } : {}),
+      }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
       return next
     })
