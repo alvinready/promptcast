@@ -10,16 +10,18 @@ import {
   Script, loadScripts, saveScripts, createScript, updateScript, deleteScript,
 } from '@/lib/storage'
 import { useTeleprompterSettings } from '@/lib/useSettings'
+import { getColors } from '@/lib/theme'
 
 export default function Home() {
   const [scripts, setScripts] = useState<Script[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [editorScript, setEditorScript] = useState<Script | null | 'new'>('new') // null=closed, 'new'=new
+  const [editorScript, setEditorScript] = useState<Script | null | 'new'>('new')
   const [showEditor, setShowEditor] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showDrive, setShowDrive] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { settings, update } = useTeleprompterSettings()
+  const C = getColors(settings.theme)
 
   useEffect(() => {
     const loaded = loadScripts()
@@ -34,70 +36,78 @@ export default function Home() {
 
   const activeScript = scripts.find(s => s.id === activeId) ?? null
 
-  const handleNew = () => {
-    setEditorScript(null)
-    setShowEditor(true)
-  }
-
+  const handleNew = () => { setEditorScript(null); setShowEditor(true) }
   const handleEdit = (id: string) => {
     const s = scripts.find(s => s.id === id)
     if (s) { setEditorScript(s); setShowEditor(true) }
   }
-
   const handleDelete = (id: string) => {
     const updated = deleteScript(scripts, id)
     persist(updated)
     if (activeId === id) setActiveId(updated[0]?.id ?? null)
   }
-
+  const handleDuplicate = (id: string) => {
+    const source = scripts.find(s => s.id === id)
+    if (!source) return
+    const copy = createScript(`${source.title} (copy)`, source.text)
+    const updated = [copy, ...scripts]
+    persist(updated)
+    setActiveId(copy.id)
+  }
   const handleSave = (title: string, text: string) => {
     if (editorScript && typeof editorScript === 'object') {
-      const updated = updateScript(scripts, editorScript.id, { title, text })
-      persist(updated)
+      persist(updateScript(scripts, editorScript.id, { title, text }))
     } else {
       const s = createScript(title, text)
-      const updated = [s, ...scripts]
-      persist(updated)
+      persist([s, ...scripts])
       setActiveId(s.id)
     }
     setShowEditor(false)
   }
-
   const handleImport = (title: string, text: string) => {
     const s = createScript(title, text)
-    const updated = [s, ...scripts]
-    persist(updated)
+    persist([s, ...scripts])
     setActiveId(s.id)
     setShowImport(false)
     setShowDrive(false)
   }
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (!(e.metaKey || e.ctrlKey)) return
+      if (e.key === 'n') { e.preventDefault(); handleNew() }
+      if (e.key === 'i') { e.preventDefault(); setShowImport(true) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100dvh',
-      background: '#0a0a0a', color: '#f0ede8', fontFamily: 'var(--font-dm-sans, system-ui, sans-serif)',
+      background: C.bgApp, color: C.textPrimary,
+      fontFamily: 'var(--font-dm-sans, system-ui, sans-serif)',
       overflow: 'hidden',
     }}>
-      {/* Top bar */}
       <header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 50, background: '#141414',
-        borderBottom: '1px solid #2a2a2a', flexShrink: 0, gap: 8,
+        padding: '0 16px', height: 50, background: C.bgPanel,
+        borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => setSidebarOpen(o => !o)} style={{
-            background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 18, padding: '0 4px',
+            background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 18, padding: '0 4px',
           }}>☰</button>
-          <span style={{
-            fontFamily: 'Georgia, serif', fontSize: 18, color: '#f5c842', letterSpacing: '-0.5px',
-          }}>
-            Prompt<span style={{ color: '#f0ede8' }}>Cast</span>
+          <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: C.accent, letterSpacing: '-0.5px' }}>
+            Prompt<span style={{ color: C.textPrimary }}>Cast</span>
           </span>
           {activeScript && (
             <span style={{
-              fontSize: 12, color: '#555', borderLeft: '1px solid #2a2a2a',
+              fontSize: 12, color: C.textMuted, borderLeft: `1px solid ${C.border}`,
               paddingLeft: 10, marginLeft: 4, maxWidth: 200,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -106,83 +116,59 @@ export default function Home() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <HeaderBtn onClick={handleNew}>+ New</HeaderBtn>
-          <HeaderBtn onClick={() => setShowImport(true)} accent>Import</HeaderBtn>
-          {activeScript && (
-            <HeaderBtn onClick={() => handleEdit(activeId!)}>Edit</HeaderBtn>
-          )}
+          <HeaderBtn onClick={handleNew} title="⌘N" C={C}>+ New</HeaderBtn>
+          <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
+          {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
         </div>
       </header>
 
-      {/* Body */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {sidebarOpen && (
           <Sidebar
-            scripts={scripts}
-            activeId={activeId}
+            scripts={scripts} activeId={activeId}
             onSelect={id => setActiveId(id)}
-            onNew={handleNew}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
+            onNew={handleNew} onEdit={handleEdit}
+            onDelete={handleDelete} onDuplicate={handleDuplicate}
             onImport={() => setShowImport(true)}
             onGoogleDrive={() => setShowDrive(true)}
-            settings={settings}
-            onSettingChange={update}
+            settings={settings} onSettingChange={update}
           />
         )}
-
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-          <Teleprompter
-            text={activeScript?.text ?? ''}
-            settings={settings}
-            onSettingChange={update}
-          />
+          <Teleprompter text={activeScript?.text ?? ''} settings={settings} onSettingChange={update} />
         </div>
       </div>
 
-      {/* Keyboard shortcut hint */}
-      <div style={{
-        position: 'fixed', bottom: 12, left: '50%', transform: 'translateX(-50%)',
-        background: '#141414', border: '1px solid #2a2a2a', borderRadius: 8,
-        padding: '5px 12px', fontSize: 10, color: '#444', pointerEvents: 'none',
-        whiteSpace: 'nowrap', zIndex: 5,
-      }}>
-        Space: play/pause · ↑↓: nudge · R: restart · +/−: speed
-      </div>
-
-      {/* Modals */}
       {showEditor && (
         <EditorModal
           script={editorScript && typeof editorScript === 'object' ? editorScript : null}
+          settings={settings}
           onSave={handleSave}
           onClose={() => setShowEditor(false)}
         />
       )}
       {showImport && (
-        <ImportModal
-          onImport={handleImport}
-          onClose={() => setShowImport(false)}
-        />
+        <ImportModal settings={settings} onImport={handleImport} onClose={() => setShowImport(false)} />
       )}
       {showDrive && (
         <GoogleDriveModal
-          clientId={googleClientId}
-          onImport={handleImport}
-          onClose={() => setShowDrive(false)}
+          clientId={googleClientId} settings={settings}
+          onImport={handleImport} onClose={() => setShowDrive(false)}
         />
       )}
     </div>
   )
 }
 
-function HeaderBtn({ children, onClick, accent }: {
-  children: React.ReactNode, onClick: () => void, accent?: boolean,
+function HeaderBtn({ children, onClick, accent, title, C }: {
+  children: React.ReactNode, onClick: () => void,
+  accent?: boolean, title?: string, C: ReturnType<typeof getColors>,
 }) {
   return (
-    <button onClick={onClick} style={{
-      background: accent ? '#f5c842' : '#1e1e1e',
-      border: `1px solid ${accent ? '#f5c842' : '#2a2a2a'}`,
-      color: accent ? '#000' : '#f0ede8',
+    <button onClick={onClick} title={title} style={{
+      background: accent ? C.accent : C.bgCard,
+      border: `1px solid ${accent ? C.accent : C.border}`,
+      color: accent ? C.accentText : C.textPrimary,
       padding: '5px 12px', borderRadius: 7, cursor: 'pointer',
       fontSize: 12, fontFamily: 'inherit', fontWeight: accent ? 500 : 400,
       transition: 'all 0.15s',
