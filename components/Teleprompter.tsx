@@ -221,6 +221,23 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     }
   }, [])
 
+  // Lock swipe gestures when fullscreen — only the ✕ button can exit
+  useEffect(() => {
+    if (!isFullscreen) return
+    const blockSwipe = (e: TouchEvent) => {
+      // Allow touches inside the script scroll area (so scrolling still works)
+      if (scrollRef.current && scrollRef.current.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    // passive:false is required to call preventDefault on touchmove
+    document.addEventListener('touchmove', blockSwipe, { passive: false })
+    document.addEventListener('touchstart', blockSwipe, { passive: false })
+    return () => {
+      document.removeEventListener('touchmove', blockSwipe)
+      document.removeEventListener('touchstart', blockSwipe)
+    }
+  }, [isFullscreen])
+
   // AI enhancement
   const handleEnhance = async () => {
     if (enhancedText) { setViewMode(m => m === 'full' ? 'bullets' : 'full'); return }
@@ -299,14 +316,16 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       }}>
         {/* Playback group */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* Restart button */}
-          <ToolBtn onClick={reset} title="Restart from beginning (R)" C={C}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="2.5" y1="1.5" x2="2.5" y2="13.5" />
-              <path d="M2.5 1.5 L5 4 M2.5 1.5 L0 4" />
-              <path d="M5.5 4A5 5 0 1 1 2.5 8" />
-            </svg>
-          </ToolBtn>
+          {/* Restart button — hidden in fullscreen since ✕ is already there */}
+          {!isFullscreen && (
+            <ToolBtn onClick={reset} title="Restart from beginning (R)" C={C}>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="2.5" y1="1.5" x2="2.5" y2="13.5" />
+                <polyline points="0,4 2.5,1.5 5,4" />
+                <path d="M5.5 4 A5 5 0 1 1 2.5 8.5" />
+              </svg>
+            </ToolBtn>
+          )}
 
           {/* Play / Pause */}
           <button
