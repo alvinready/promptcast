@@ -79,6 +79,7 @@ export default function Home() {
       if (!(e.metaKey || e.ctrlKey)) return
       if (e.key === 'n') { e.preventDefault(); handleNew() }
       if (e.key === 'i') { e.preventDefault(); setShowImport(true) }
+      if (e.key === 'b') { e.preventDefault(); setSidebarOpen(o => !o) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -87,58 +88,121 @@ export default function Home() {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', height: '100dvh',
-      background: C.bgApp, color: C.textPrimary,
-      fontFamily: 'var(--font-dm-sans, system-ui, sans-serif)',
-      overflow: 'hidden',
-    }}>
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', height: 50, background: C.bgPanel,
-        borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => setSidebarOpen(o => !o)} style={{
-            background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 18, padding: '0 4px',
-          }}>☰</button>
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: C.accent, letterSpacing: '-0.5px' }}>
-            Prompt<span style={{ color: C.textPrimary }}>Cast</span>
-          </span>
-          {activeScript && (
-            <span style={{
-              fontSize: 12, color: C.textMuted, borderLeft: `1px solid ${C.border}`,
-              paddingLeft: 10, marginLeft: 4, maxWidth: 200,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {activeScript.title}
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <HeaderBtn onClick={handleNew} title="⌘N" C={C}>+ New</HeaderBtn>
-          <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
-          {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
-        </div>
-      </header>
+    <>
+      {/* Global mobile styles */}
+      <style>{`
+        * { box-sizing: border-box; }
+        body { overscroll-behavior: none; }
+        ::-webkit-scrollbar { display: none; }
+        @media (max-width: 600px) {
+          .sidebar-overlay { display: block !important; }
+          .sidebar-push { display: none !important; }
+        }
+      `}</style>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {sidebarOpen && (
-          <Sidebar
-            scripts={scripts} activeId={activeId}
-            onSelect={id => setActiveId(id)}
-            onNew={handleNew} onEdit={handleEdit}
-            onDelete={handleDelete} onDuplicate={handleDuplicate}
-            onImport={() => setShowImport(true)}
-            onGoogleDrive={() => setShowDrive(true)}
-            settings={settings} onSettingChange={update}
-          />
-        )}
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        height: '100dvh',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        background: C.bgApp, color: C.textPrimary,
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <header style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 12px', height: 50, background: C.bgPanel,
+          borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Sidebar toggle */}
+            <button
+              onClick={() => setSidebarOpen(o => !o)}
+              title={sidebarOpen ? 'Close sidebar (⌘B)' : 'Open sidebar (⌘B)'}
+              style={{
+                width: 36, height: 36, background: sidebarOpen ? C.accentBg : 'none',
+                border: sidebarOpen ? `1px solid ${C.accentDim}` : `1px solid transparent`,
+                borderRadius: 9, color: sidebarOpen ? C.accent : C.textMuted,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s', flexShrink: 0,
+              }}
+            >
+              <svg width="16" height="13" viewBox="0 0 16 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <line x1="0" y1="1.5" x2="16" y2="1.5" />
+                <line x1="0" y1="6.5" x2="16" y2="6.5" />
+                <line x1="0" y1="11.5" x2="16" y2="11.5" />
+              </svg>
+            </button>
+
+            {/* Logo */}
+            <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: C.accent, letterSpacing: '-0.5px', flexShrink: 0 }}>
+              Prompt<span style={{ color: C.textPrimary }}>Cast</span>
+            </span>
+
+            {/* Active script title */}
+            {activeScript && (
+              <span style={{
+                fontSize: 12, color: C.textMuted, borderLeft: `1px solid ${C.border}`,
+                paddingLeft: 10, marginLeft: 2, maxWidth: 160,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {activeScript.title}
+              </span>
+            )}
+          </div>
+
+          {/* Header actions */}
+          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+            <HeaderBtn onClick={handleNew} title="⌘N" C={C}>+ New</HeaderBtn>
+            <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
+            {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
+          </div>
+        </header>
+
+        {/* Main content */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-          <Teleprompter text={activeScript?.text ?? ''} settings={settings} onSettingChange={update} />
+          {/* Sidebar — push layout on tablet/desktop, overlay on mobile */}
+          {sidebarOpen && (
+            <>
+              {/* Mobile overlay backdrop */}
+              <div
+                className="sidebar-overlay"
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'none',
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+                  zIndex: 40, backdropFilter: 'blur(2px)',
+                }}
+              />
+              <div
+                className="sidebar-push"
+                style={{ display: 'flex', position: 'relative', zIndex: 41 }}
+              >
+                <Sidebar
+                  scripts={scripts} activeId={activeId}
+                  onSelect={id => { setActiveId(id); if (window.innerWidth < 600) setSidebarOpen(false) }}
+                  onNew={handleNew} onEdit={handleEdit}
+                  onDelete={handleDelete} onDuplicate={handleDuplicate}
+                  onImport={() => setShowImport(true)}
+                  onGoogleDrive={() => setShowDrive(true)}
+                  onClose={() => setSidebarOpen(false)}
+                  settings={settings} onSettingChange={update}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Teleprompter area */}
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+            <Teleprompter text={activeScript?.text ?? ''} settings={settings} onSettingChange={update} />
+          </div>
         </div>
       </div>
 
+      {/* Modals */}
       {showEditor && (
         <EditorModal
           script={editorScript && typeof editorScript === 'object' ? editorScript : null}
@@ -156,7 +220,7 @@ export default function Home() {
           onImport={handleImport} onClose={() => setShowDrive(false)}
         />
       )}
-    </div>
+    </>
   )
 }
 
@@ -165,14 +229,23 @@ function HeaderBtn({ children, onClick, accent, title, C }: {
   accent?: boolean, title?: string, C: ReturnType<typeof getColors>,
 }) {
   return (
-    <button onClick={onClick} title={title} style={{
-      background: accent ? C.accent : C.bgCard,
-      border: `1px solid ${accent ? C.accent : C.border}`,
-      color: accent ? C.accentText : C.textPrimary,
-      padding: '5px 12px', borderRadius: 7, cursor: 'pointer',
-      fontSize: 12, fontFamily: 'inherit', fontWeight: accent ? 500 : 400,
-      transition: 'all 0.15s',
-    }}>
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        background: accent ? C.accent : C.bgCard,
+        border: `1px solid ${accent ? C.accentDim : C.border}`,
+        color: accent ? C.accentText : C.textPrimary,
+        padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+        fontSize: 12, fontFamily: 'inherit', fontWeight: accent ? 700 : 500,
+        transition: 'all 0.15s',
+        boxShadow: accent ? C.btnShadowAccent : C.btnShadow,
+        whiteSpace: 'nowrap',
+      }}
+      onMouseDown={e => (e.currentTarget.style.boxShadow = C.btnShadowActive)}
+      onMouseUp={e => (e.currentTarget.style.boxShadow = accent ? C.btnShadowAccent : C.btnShadow)}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = accent ? C.btnShadowAccent : C.btnShadow)}
+    >
       {children}
     </button>
   )

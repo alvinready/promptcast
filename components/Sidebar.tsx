@@ -15,20 +15,21 @@ interface SidebarProps {
   onDuplicate: (id: string) => void
   onImport: () => void
   onGoogleDrive: () => void
+  onClose: () => void
   settings: TeleprompterSettings
   onSettingChange: (patch: Partial<TeleprompterSettings>) => void
 }
 
 export default function Sidebar({
   scripts, activeId, onSelect, onNew, onEdit, onDelete, onDuplicate,
-  onImport, onGoogleDrive, settings, onSettingChange,
+  onImport, onGoogleDrive, onClose, settings, onSettingChange,
 }: SidebarProps) {
   const C = getColors(settings.theme)
   const [tab, setTab] = useState<'scripts' | 'settings'>('scripts')
 
   return (
     <aside style={{
-      width: 264,
+      width: 272,
       background: C.bgPanel,
       borderRight: `1px solid ${C.border}`,
       display: 'flex',
@@ -36,19 +37,37 @@ export default function Sidebar({
       overflow: 'hidden',
       flexShrink: 0,
     }}>
-      <div style={{ display: 'flex', borderBottom: `1px solid ${C.border}` }}>
+      {/* Header with tab bar + close button */}
+      <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         {(['scripts', 'settings'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: '12px 0', background: 'none', border: 'none',
+            flex: 1, padding: '13px 0', background: 'none', border: 'none',
             color: tab === t ? C.accent : C.textMuted, cursor: 'pointer',
-            fontSize: 12, fontWeight: 500, textTransform: 'uppercase',
-            letterSpacing: '0.8px',
+            fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+            letterSpacing: '1px',
             borderBottom: tab === t ? `2px solid ${C.accent}` : '2px solid transparent',
-            transition: 'all 0.15s',
+            transition: 'color 0.15s, border-color 0.15s',
           }}>
-            {t}
+            {t === 'scripts' ? '📋 Scripts' : '⚙️ Settings'}
           </button>
         ))}
+        {/* Close sidebar button */}
+        <button
+          onClick={onClose}
+          title="Close sidebar"
+          style={{
+            width: 44, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`,
+            color: C.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0, transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = C.textPrimary)}
+          onMouseLeave={e => (e.currentTarget.style.color = C.textMuted)}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <line x1="11" y1="3" x2="5" y2="8" />
+            <line x1="5" y1="8" x2="11" y2="13" />
+          </svg>
+        </button>
       </div>
 
       {tab === 'scripts' ? (
@@ -92,8 +111,7 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
   const requestDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (pendingDelete === id) {
-      onDelete(id)
-      setPendingDelete(null)
+      onDelete(id); setPendingDelete(null)
     } else {
       setPendingDelete(id)
       if (timerRef.current) clearTimeout(timerRef.current)
@@ -104,27 +122,24 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   const filtered = search.trim()
-    ? scripts.filter(s =>
-        s.title.toLowerCase().includes(search.toLowerCase()) ||
-        s.text.toLowerCase().includes(search.toLowerCase())
-      )
+    ? scripts.filter(s => s.title.toLowerCase().includes(search.toLowerCase()) || s.text.toLowerCase().includes(search.toLowerCase()))
     : scripts
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-      <div style={{ padding: '12px', borderBottom: `1px solid ${C.border}` }}>
-        <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
-          Import from
-        </p>
+      {/* Import row */}
+      <div style={{ padding: '10px 12px', borderBottom: `1px solid ${C.border}` }}>
+        <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 7 }}>Import from</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <ImportBtn icon="📁" label="File / Notes" onClick={onImport} C={C} />
           <ImportBtn icon="📄" label="Google Drive" onClick={onGoogleDrive} C={C} />
         </div>
-        <p style={{ fontSize: 10, color: C.textFaint, marginTop: 8, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 10, color: C.textFaint, marginTop: 7, lineHeight: 1.5 }}>
           Apple Notes: export note as .txt from Share sheet
         </p>
       </div>
 
+      {/* Search */}
       {scripts.length >= 4 && (
         <div style={{ padding: '8px 10px', borderBottom: `1px solid ${C.border}` }}>
           <input
@@ -133,8 +148,9 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
             placeholder="Search scripts…"
             style={{
               width: '100%', background: C.bgInput, border: `1px solid ${C.border}`,
-              color: C.textPrimary, padding: '6px 10px', borderRadius: 7,
+              color: C.textPrimary, padding: '7px 10px', borderRadius: 8,
               fontSize: 12, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+              transition: 'border-color 0.15s',
             }}
             onFocus={e => (e.target.style.borderColor = C.accent)}
             onBlur={e => (e.target.style.borderColor = C.border)}
@@ -142,7 +158,8 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
         </div>
       )}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+      {/* Script list */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
         {filtered.length === 0 && (
           <p style={{ color: C.textFaint, fontSize: 12, textAlign: 'center', marginTop: 24 }}>
             {search ? 'No matches' : 'No scripts yet'}
@@ -161,46 +178,120 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
               style={{
                 background: isPending ? C.dangerBg : isActive ? C.accentBg : C.bgCard,
                 border: `1px solid ${isPending ? C.danger : isActive ? C.accent : C.border}`,
-                borderRadius: 8, padding: '8px 10px', marginBottom: 6, cursor: 'pointer',
-                transition: 'all 0.15s',
+                borderRadius: 10, marginBottom: 7, cursor: 'pointer',
+                transition: 'all 0.15s', overflow: 'hidden',
+                boxShadow: isActive ? `0 0 0 2px ${C.accent}22` : 'none',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>
-                <p style={{ fontSize: 12, fontWeight: 500, color: C.textPrimary, marginBottom: 2, flex: 1, lineHeight: 1.4 }}>
+              {/* Card body */}
+              <div style={{ padding: '9px 11px 7px' }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, marginBottom: 3, lineHeight: 1.35 }}>
                   {s.title}
                 </p>
-                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                  <ActionBtn title="Edit" onClick={e => { e.stopPropagation(); setPendingDelete(null); onEdit(s.id) }} C={C}>✏️</ActionBtn>
-                  <ActionBtn title="Duplicate" onClick={e => { e.stopPropagation(); setPendingDelete(null); onDuplicate(s.id) }} C={C}>⎘</ActionBtn>
-                  <ActionBtn title={isPending ? 'Tap again to confirm delete' : 'Delete'} onClick={e => requestDelete(s.id, e)} C={C} danger={isPending}>
-                    {isPending ? '✕' : '🗑'}
-                  </ActionBtn>
-                </div>
+                {isPending ? (
+                  <p style={{ fontSize: 10, color: C.dangerText, fontWeight: 500 }}>Tap TRASH again to confirm · auto-cancels</p>
+                ) : (
+                  <p style={{ fontSize: 10, color: C.textMuted }}>
+                    {wc.toLocaleString()} words{rt ? ` · ${rt}` : ''}
+                  </p>
+                )}
               </div>
-              {isPending ? (
-                <p style={{ fontSize: 10, color: C.dangerText, marginTop: 2 }}>
-                  Tap delete again to confirm · auto-cancels
-                </p>
-              ) : (
-                <p style={{ fontSize: 10, color: C.textMuted }}>
-                  {wc.toLocaleString()} words{rt ? ` · ${rt}` : ''}
-                </p>
-              )}
+
+              {/* Action row at bottom */}
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  display: 'flex', borderTop: `1px solid ${isPending ? C.danger : C.border}`,
+                  background: isPending ? `${C.dangerBg}` : C.bgApp,
+                }}
+              >
+                {/* EDIT */}
+                <CardBtn
+                  onClick={e => { e.stopPropagation(); setPendingDelete(null); onEdit(s.id) }}
+                  flex={3}
+                  C={C}
+                  color={C.accent}
+                >
+                  EDIT
+                </CardBtn>
+                <div style={{ width: 1, background: isPending ? C.danger : C.border }} />
+                {/* DUP */}
+                <CardBtn
+                  onClick={e => { e.stopPropagation(); setPendingDelete(null); onDuplicate(s.id) }}
+                  flex={2.5}
+                  C={C}
+                  color={C.textSecondary}
+                >
+                  DUP
+                </CardBtn>
+                <div style={{ width: 1, background: isPending ? C.danger : C.border }} />
+                {/* TRASH */}
+                <CardBtn
+                  onClick={e => requestDelete(s.id, e)}
+                  flex={2}
+                  C={C}
+                  color={isPending ? C.dangerText : C.textMuted}
+                  danger={isPending}
+                >
+                  {isPending ? '✕ CONFIRM' : 'TRASH'}
+                </CardBtn>
+              </div>
             </div>
           )
         })}
       </div>
 
+      {/* New Script */}
       <div style={{ padding: '10px', borderTop: `1px solid ${C.border}` }}>
         <button onClick={onNew} style={{
-          width: '100%', background: C.bgCard, border: `1px solid ${C.border}`,
-          color: C.textPrimary, padding: '8px', borderRadius: 8, cursor: 'pointer',
-          fontSize: 12, fontFamily: 'inherit',
-        }}>
+          width: '100%', background: C.accent, border: 'none',
+          color: C.accentText, padding: '10px', borderRadius: 9, cursor: 'pointer',
+          fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+          boxShadow: C.btnShadowAccent, transition: 'opacity 0.15s',
+          letterSpacing: '0.2px',
+        }}
+          onMouseDown={e => (e.currentTarget.style.opacity = '0.85')}
+          onMouseUp={e => (e.currentTarget.style.opacity = '1')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
           + New Script
         </button>
       </div>
     </div>
+  )
+}
+
+function CardBtn({ children, onClick, flex, C, color, danger }: {
+  children: React.ReactNode
+  onClick: (e: React.MouseEvent) => void
+  flex: number
+  C: ReturnType<typeof getColors>
+  color: string
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex,
+        background: 'none',
+        border: 'none',
+        padding: '7px 4px',
+        cursor: 'pointer',
+        fontSize: danger ? 10 : 10,
+        fontWeight: 700,
+        letterSpacing: '0.7px',
+        color,
+        fontFamily: 'system-ui, sans-serif',
+        transition: 'opacity 0.12s',
+        minHeight: 32,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.opacity = '0.65')}
+      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -210,16 +301,15 @@ function SettingsTab({ settings, onChange, C }: {
   C: ReturnType<typeof getColors>,
 }) {
   const readColors = [
-    { label: 'Default', value: settings.theme === 'light' ? '#1c1814' : '#f0ede8' },
+    { label: 'Default', value: settings.theme === 'light' ? '#1c1c1e' : '#f2f2f7' },
     { label: 'Amber', value: '#f5c842' },
-    { label: 'Green', value: '#7dd3a8' },
-    { label: 'Blue', value: '#93c5fd' },
+    { label: 'Green', value: '#4ade80' },
+    { label: 'Blue', value: '#60a5fa' },
   ]
 
   return (
-    <div style={{ overflowY: 'auto', flex: 1, padding: '12px' }}>
+    <div style={{ overflowY: 'auto', flex: 1, padding: '14px 12px' }}>
 
-      {/* Theme toggle — first thing in settings */}
       <Section label="App Theme" C={C}>
         <div style={{ display: 'flex', gap: 6 }}>
           {(['dark', 'light'] as const).map(t => (
@@ -227,12 +317,13 @@ function SettingsTab({ settings, onChange, C }: {
               key={t}
               onClick={() => onChange({ theme: t })}
               style={{
-                flex: 1, padding: '8px 0',
+                flex: 1, padding: '9px 0',
                 background: settings.theme === t ? C.accent : C.bgCard,
-                border: `1px solid ${settings.theme === t ? C.accent : C.border}`,
+                border: `1px solid ${settings.theme === t ? C.accentDim : C.border}`,
                 color: settings.theme === t ? C.accentText : C.textSecondary,
-                borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
-                fontWeight: settings.theme === t ? 600 : 400,
+                borderRadius: 9, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+                fontWeight: settings.theme === t ? 700 : 500,
+                boxShadow: settings.theme === t ? C.btnShadowAccent : C.btnShadow,
                 transition: 'all 0.15s',
               }}
             >
@@ -240,9 +331,6 @@ function SettingsTab({ settings, onChange, C }: {
             </button>
           ))}
         </div>
-        <p style={{ fontSize: 10, color: C.textFaint, marginTop: 6, lineHeight: 1.5 }}>
-          Light mode uses warm parchment tones, easy on the eyes.
-        </p>
       </Section>
 
       <Section label="Font Size" C={C}>
@@ -261,18 +349,19 @@ function SettingsTab({ settings, onChange, C }: {
       </Section>
 
       <Section label="Script Text Color" C={C}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {readColors.map(c => (
             <button key={c.value} onClick={() => onChange({ textColor: c.value })} title={c.label}
               style={{
-                width: 28, height: 28, borderRadius: 6,
-                border: settings.textColor === c.value ? `2px solid ${C.accent}` : `2px solid ${C.border}`,
+                width: 30, height: 30, borderRadius: 8,
+                border: settings.textColor === c.value ? `2.5px solid ${C.accent}` : `2px solid ${C.border}`,
                 background: c.value, cursor: 'pointer',
+                boxShadow: settings.textColor === c.value ? C.btnShadowAccent : C.btnShadow,
               }}
             />
           ))}
           <input type="color" value={settings.textColor} onChange={e => onChange({ textColor: e.target.value })}
-            style={{ width: 28, height: 28, border: 'none', borderRadius: 6, cursor: 'pointer', background: 'none', padding: 0 }}
+            style={{ width: 30, height: 30, border: `2px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', background: 'none', padding: 0 }}
           />
         </div>
       </Section>
@@ -281,11 +370,14 @@ function SettingsTab({ settings, onChange, C }: {
         <div style={{ display: 'flex', gap: 4 }}>
           {(['left', 'center', 'right'] as const).map(a => (
             <button key={a} onClick={() => onChange({ textAlign: a })} style={{
-              flex: 1, padding: '5px 0',
+              flex: 1, padding: '7px 0',
               background: settings.textAlign === a ? C.accent : C.bgCard,
-              border: `1px solid ${C.border}`,
+              border: `1px solid ${settings.textAlign === a ? C.accentDim : C.border}`,
               color: settings.textAlign === a ? C.accentText : C.textSecondary,
-              borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
+              borderRadius: 8, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
+              fontWeight: settings.textAlign === a ? 700 : 500,
+              boxShadow: settings.textAlign === a ? C.btnShadowAccent : C.btnShadow,
+              transition: 'all 0.15s',
             }}>
               {a.charAt(0).toUpperCase() + a.slice(1)}
             </button>
@@ -296,8 +388,8 @@ function SettingsTab({ settings, onChange, C }: {
       <Section label="Mirror Mode" C={C}>
         <ToggleRow label="Horizontal (reflector)" checked={settings.mirrorH} onChange={v => onChange({ mirrorH: v })} C={C} />
         <ToggleRow label="Vertical flip" checked={settings.mirrorV} onChange={v => onChange({ mirrorV: v })} C={C} />
-        <p style={{ fontSize: 10, color: C.textFaint, marginTop: 6, lineHeight: 1.5 }}>
-          Enable horizontal for glass beam-splitter teleprompter reflectors
+        <p style={{ fontSize: 10, color: C.textFaint, marginTop: 4, lineHeight: 1.5 }}>
+          Enable horizontal for glass beam-splitter reflectors
         </p>
       </Section>
 
@@ -305,14 +397,15 @@ function SettingsTab({ settings, onChange, C }: {
         <ToggleRow label="Center guide line" checked={settings.showCenterLine} onChange={v => onChange({ showCenterLine: v })} C={C} />
         <ToggleRow label="Dark reading area" checked={settings.darkBg} onChange={v => onChange({ darkBg: v })} C={C} />
       </Section>
+
     </div>
   )
 }
 
 function Section({ label, children, C }: { label: string, children: React.ReactNode, C: ReturnType<typeof getColors> }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>{label}</p>
+    <div style={{ marginBottom: 22 }}>
+      <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, marginBottom: 9 }}>{label}</p>
       {children}
     </div>
   )
@@ -323,12 +416,15 @@ function SliderRow({ min, max, step = 1, value, onChange, display, C }: {
   onChange: (v: number) => void, display: string, C: ReturnType<typeof getColors>,
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        style={{ flex: 1, accentColor: C.accent }}
+        style={{ flex: 1, accentColor: C.accent, cursor: 'pointer' }}
       />
-      <span style={{ fontSize: 11, color: C.textSecondary, minWidth: 34, textAlign: 'right' }}>{display}</span>
+      <span style={{
+        fontSize: 12, color: C.textPrimary, minWidth: 40, textAlign: 'right',
+        fontVariantNumeric: 'tabular-nums', fontWeight: 500, fontFamily: 'system-ui, sans-serif',
+      }}>{display}</span>
     </div>
   )
 }
@@ -337,17 +433,30 @@ function ToggleRow({ label, checked, onChange, C }: {
   label: string, checked: boolean, onChange: (v: boolean) => void, C: ReturnType<typeof getColors>
 }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-      <span style={{ fontSize: 12, color: C.textSecondary }}>{label}</span>
-      <div onClick={() => onChange(!checked)} style={{
-        width: 36, height: 20, borderRadius: 10, background: checked ? C.accent : C.bgHover,
-        cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-      }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 12 }}>
+      <span style={{ fontSize: 13, color: C.textSecondary, lineHeight: 1.3 }}>{label}</span>
+      {/* Apple-style toggle */}
+      <div
+        onClick={() => onChange(!checked)}
+        role="switch"
+        aria-checked={checked}
+        style={{
+          width: 42, height: 26, borderRadius: 13,
+          background: checked ? C.accent : C.bgHover,
+          border: `1.5px solid ${checked ? C.accentDim : C.border}`,
+          cursor: 'pointer', position: 'relative',
+          transition: 'background 0.22s, border-color 0.22s',
+          flexShrink: 0,
+          boxShadow: checked ? `0 0 0 3px ${C.accent}22` : 'none',
+        }}
+      >
         <div style={{
-          width: 14, height: 14, borderRadius: '50%',
-          background: checked ? C.accentText : C.textSecondary,
-          position: 'absolute', top: 3,
-          left: checked ? 19 : 3, transition: 'left 0.2s',
+          width: 20, height: 20, borderRadius: '50%',
+          background: '#ffffff',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
+          position: 'absolute', top: 2,
+          left: checked ? 18 : 2,
+          transition: 'left 0.22s cubic-bezier(0.34, 1.4, 0.64, 1)',
         }} />
       </div>
     </div>
@@ -360,49 +469,16 @@ function ImportBtn({ icon, label, onClick, C }: {
   return (
     <button onClick={onClick} style={{
       background: C.bgCard, border: `1px solid ${C.border}`, color: C.textPrimary,
-      padding: '8px 4px', borderRadius: 8, cursor: 'pointer', fontSize: 11,
+      padding: '9px 4px', borderRadius: 9, cursor: 'pointer', fontSize: 11,
       fontFamily: 'inherit', textAlign: 'center', display: 'flex',
-      flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%',
-    }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
-      {label}
-    </button>
-  )
-}
-
-function ActionBtn({ children, onClick, title, danger, C }: {
-  children: React.ReactNode
-  onClick: (e: React.MouseEvent) => void
-  title?: string
-  danger?: boolean
-  C: ReturnType<typeof getColors>
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        background: danger ? C.dangerBg : 'none',
-        border: danger ? `1px solid ${C.danger}` : 'none',
-        cursor: 'pointer',
-        padding: '4px 6px',
-        borderRadius: 5,
-        fontSize: 13,
-        lineHeight: 1,
-        minWidth: 26,
-        minHeight: 26,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: danger ? 1 : 0.45,
-        transition: 'opacity 0.15s, background 0.15s',
-        color: danger ? C.dangerText : undefined,
-        fontWeight: danger ? 700 : undefined,
-      }}
-      onMouseEnter={e => { if (!danger) e.currentTarget.style.opacity = '1' }}
-      onMouseLeave={e => { if (!danger) e.currentTarget.style.opacity = '0.45' }}
+      flexDirection: 'column', alignItems: 'center', gap: 4, width: '100%',
+      boxShadow: C.btnShadow, fontWeight: 500, transition: 'background 0.12s',
+    }}
+      onMouseEnter={e => (e.currentTarget.style.background = C.bgHover)}
+      onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
     >
-      {children}
+      <span style={{ fontSize: 20 }}>{icon}</span>
+      {label}
     </button>
   )
 }

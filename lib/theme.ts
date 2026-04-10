@@ -7,6 +7,7 @@ export interface Colors {
   bgInput: string
   bgHover: string
   border: string
+  borderStrong: string
   textPrimary: string
   textSecondary: string
   textMuted: string
@@ -23,59 +24,70 @@ export interface Colors {
   warningBg: string
   warningBorder: string
   warningText: string
-  defaultTextColor: string // sensible default for the reading area
+  defaultTextColor: string
+  btnShadow: string
+  btnShadowActive: string
+  btnShadowAccent: string
 }
 
 const DARK: Colors = {
-  bgApp: '#0a0a0a',
-  bgPanel: '#141414',
-  bgCard: '#1e1e1e',
-  bgInput: '#1e1e1e',
-  bgHover: '#282828',
-  border: '#2a2a2a',
-  textPrimary: '#f0ede8',
-  textSecondary: '#888888',
-  textMuted: '#555555',
-  textFaint: '#444444',
+  bgApp: '#000000',
+  bgPanel: '#1c1c1e',
+  bgCard: '#2c2c2e',
+  bgInput: '#1c1c1e',
+  bgHover: '#3a3a3c',
+  border: '#38383a',
+  borderStrong: '#545456',
+  textPrimary: '#f2f2f7',
+  textSecondary: '#aeaeb2',
+  textMuted: '#636366',
+  textFaint: '#48484a',
   accent: '#f5c842',
-  accentDim: '#e8a020',
-  accentBg: '#1e1a00',
+  accentDim: '#e0a820',
+  accentBg: '#2a1f00',
   accentText: '#000000',
   promptBg: '#000000',
-  promptBgAlt: '#111111',
-  danger: '#8b0000',
-  dangerBg: '#1a0000',
-  dangerText: '#e24b4a',
-  warningBg: '#1a1000',
-  warningBorder: '#4a3000',
-  warningText: '#c8a050',
-  defaultTextColor: '#f0ede8',
+  promptBgAlt: '#0d0d0d',
+  danger: '#ff453a',
+  dangerBg: '#2c0f0e',
+  dangerText: '#ff6b63',
+  warningBg: '#1c1400',
+  warningBorder: '#4a3200',
+  warningText: '#d4a240',
+  defaultTextColor: '#f2f2f7',
+  btnShadow: '0 2px 4px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)',
+  btnShadowActive: 'inset 0 2px 3px rgba(0,0,0,0.5)',
+  btnShadowAccent: '0 2px 8px rgba(245,200,66,0.4), 0 1px 3px rgba(0,0,0,0.4)',
 }
 
 const LIGHT: Colors = {
-  bgApp: '#f4f0e8',
-  bgPanel: '#ece8de',
-  bgCard: '#e4dfd4',
-  bgInput: '#e4dfd4',
-  bgHover: '#dcd6ca',
-  border: '#cfc8bc',
-  textPrimary: '#1c1814',
-  textSecondary: '#7a736c',
-  textMuted: '#9e968e',
-  textFaint: '#b0a89e',
-  accent: '#b8880a',
-  accentDim: '#9a7208',
-  accentBg: '#fff3cc',
-  accentText: '#000000',
-  promptBg: '#f8f4ec',
-  promptBgAlt: '#f0ebe0',
-  danger: '#cc2200',
-  dangerBg: '#ffe8e0',
-  dangerText: '#cc2200',
-  warningBg: '#fff8e8',
-  warningBorder: '#e8c060',
-  warningText: '#8a6010',
-  defaultTextColor: '#1c1814',
+  bgApp: '#f2f2f7',
+  bgPanel: '#ffffff',
+  bgCard: '#f2f2f7',
+  bgInput: '#ffffff',
+  bgHover: '#e5e5ea',
+  border: '#d1d1d6',
+  borderStrong: '#aeaeb2',
+  textPrimary: '#1c1c1e',
+  textSecondary: '#3c3c43',
+  textMuted: '#8e8e93',
+  textFaint: '#aeaeb2',
+  accent: '#bf7500',
+  accentDim: '#9e6000',
+  accentBg: '#fff8e1',
+  accentText: '#ffffff',
+  promptBg: '#ffffff',
+  promptBgAlt: '#fafaf8',
+  danger: '#ff3b30',
+  dangerBg: '#fff2f1',
+  dangerText: '#d92b20',
+  warningBg: '#fffbf0',
+  warningBorder: '#ffd60a',
+  warningText: '#7d5300',
+  defaultTextColor: '#1c1c1e',
+  btnShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)',
+  btnShadowActive: 'inset 0 1px 3px rgba(0,0,0,0.10)',
+  btnShadowAccent: '0 2px 8px rgba(191,117,0,0.35), 0 1px 3px rgba(0,0,0,0.15)',
 }
 
 export function getColors(theme: ColorTheme): Colors {

@@ -98,10 +98,12 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
               <button onClick={() => setConfirmDiscard(false)} style={{
                 background: C.bgCard, border: `1px solid ${C.border}`, color: C.textSecondary,
                 padding: '5px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+                boxShadow: C.btnShadow,
               }}>Keep editing</button>
               <button onClick={onClose} style={{
                 background: C.dangerBg, border: `1px solid ${C.danger}`, color: C.dangerText,
                 padding: '5px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+                boxShadow: C.btnShadow,
               }}>Discard</button>
             </div>
           </div>
@@ -148,14 +150,16 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
           <button onClick={handleClose} style={{
             background: C.bgCard, border: `1px solid ${C.border}`, color: C.textSecondary,
             padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+            boxShadow: C.btnShadow,
           }}>Cancel</button>
           <button onClick={handleSave} disabled={!text.trim()} style={{
             background: text.trim() ? C.accent : C.bgHover,
-            border: 'none',
+            border: `1px solid ${text.trim() ? C.accentDim : C.border}`,
             color: text.trim() ? C.accentText : C.textMuted,
             padding: '8px 20px', borderRadius: 8,
             cursor: text.trim() ? 'pointer' : 'default',
-            fontSize: 13, fontWeight: 500, fontFamily: 'inherit', transition: 'all 0.15s',
+            fontSize: 13, fontWeight: 700, fontFamily: 'inherit', transition: 'all 0.15s',
+            boxShadow: text.trim() ? C.btnShadowAccent : 'none',
           }}>Save Script</button>
         </div>
       </div>
