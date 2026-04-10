@@ -193,48 +193,56 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     if (scrollRef.current) scrollRef.current.scrollTop += dir * 100
   }
 
+  // Detect iOS — native fullscreen API on iOS adds its own X overlay we can't remove
+  const isIOS = typeof navigator !== 'undefined' &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
   // Fullscreen
   const enterFullscreen = useCallback(() => {
     const el = containerRef.current
     if (!el) return
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => {})
-    else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen()
+    // On iOS: skip native fullscreen (Safari adds its own X button we can't remove)
+    // Use CSS-only fullscreen instead so our UI stays in full control
+    if (!isIOS) {
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {})
+    }
     setIsFullscreen(true)
-  }, [])
+  }, [isIOS])
 
   const exitFullscreen = useCallback(() => {
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
-    else if ((document as any).webkitFullscreenElement) (document as any).webkitExitFullscreen?.()
+    if (!isIOS && document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
     setIsFullscreen(false)
-  }, [])
+  }, [isIOS])
 
+  // Listen for native fullscreen exit (desktop Esc key)
   useEffect(() => {
     const handler = () => {
-      const native = !!(document.fullscreenElement || (document as any).webkitFullscreenElement)
+      const native = !!document.fullscreenElement
       if (!native) setIsFullscreen(false)
     }
     document.addEventListener('fullscreenchange', handler)
-    document.addEventListener('webkitfullscreenchange', handler)
-    return () => {
-      document.removeEventListener('fullscreenchange', handler)
-      document.removeEventListener('webkitfullscreenchange', handler)
-    }
+    return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
 
-  // Lock swipe gestures when fullscreen — only the ✕ button can exit
+  // Lock body scroll when fullscreen — prevents iOS from showing browser chrome on swipe-down
   useEffect(() => {
-    if (!isFullscreen) return
-    const blockSwipe = (e: TouchEvent) => {
-      // Allow touches inside the script scroll area (so scrolling still works)
-      if (scrollRef.current && scrollRef.current.contains(e.target as Node)) return
-      e.preventDefault()
+    if (isFullscreen) {
+      document.body.style.position = 'fixed'
+      document.body.style.overflow = 'hidden'
+      document.body.style.width = '100%'
+      document.documentElement.style.overflow = 'hidden'
+    } else {
+      document.body.style.position = ''
+      document.body.style.overflow = ''
+      document.body.style.width = ''
+      document.documentElement.style.overflow = ''
     }
-    // passive:false is required to call preventDefault on touchmove
-    document.addEventListener('touchmove', blockSwipe, { passive: false })
-    document.addEventListener('touchstart', blockSwipe, { passive: false })
     return () => {
-      document.removeEventListener('touchmove', blockSwipe)
-      document.removeEventListener('touchstart', blockSwipe)
+      document.body.style.position = ''
+      document.body.style.overflow = ''
+      document.body.style.width = ''
+      document.documentElement.style.overflow = ''
     }
   }, [isFullscreen])
 
