@@ -1,7 +1,7 @@
 {
-  "name": "PromptCast Teleprompter",
-  "short_name": "PromptCast",
-  "description": "Professional teleprompter for iPad with mirror mode and document import",
+  "name": "AiPrompter Teleprompter",
+  "short_name": "AiPrompter",
+  "description": "Professional AI teleprompter for iPad with mirror mode and document import",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",

@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'PromptCast — Teleprompter',
-  description: 'Professional teleprompter for iPad with mirror mode, Google Drive, and file import.',
+  title: 'AiPrompter — Teleprompter',
+  description: 'Professional AI teleprompter for iPad with mirror mode, Google Drive, and file import.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'PromptCast',
+    title: 'AiPrompter',
   },
 }
 

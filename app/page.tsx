@@ -139,7 +139,7 @@ export default function Home() {
 
             {/* Logo */}
             <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: C.accent, letterSpacing: '-0.5px', flexShrink: 0 }}>
-              Prompt<span style={{ color: C.textPrimary }}>Cast</span>
+              Ai<span style={{ color: C.textPrimary }}>Prompter</span>
             </span>
 
             {/* Active script title */}

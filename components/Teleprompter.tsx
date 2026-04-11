@@ -481,7 +481,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           <button
             onClick={handleEnhance}
             disabled={isEnhancing || !text.trim()}
-            title={enhancedText ? 'Toggle full script / AI keywords' : 'Generate AI keyword triggers'}
+            title={enhancedText ? 'Toggle full script / Ai Simplify view' : 'Simplify script with Ai'}
             style={{
               background: viewMode === 'bullets' && enhancedText ? C.accent : C.bgCard,
               border: `1px solid ${viewMode === 'bullets' && enhancedText ? C.accentDim : C.border}`,
