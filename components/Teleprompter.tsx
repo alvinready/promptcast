@@ -193,28 +193,19 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     if (scrollRef.current) scrollRef.current.scrollTop += dir * 100
   }
 
-  // Detect iOS/iPadOS — on these devices webkitRequestFullscreen adds an
-  // unremovable system X button and enables a swipe-to-exit gesture that we
-  // cannot intercept. We therefore skip it entirely and rely on CSS-only
-  // fullscreen (position:fixed / z-index:9999). Safari auto-hides its chrome
-  // once the user starts scrolling, giving a near-fullscreen feel in practice.
-  // For a truly chrome-free experience the user can "Add to Home Screen".
-  const isIOS = useCallback(() => {
-    if (typeof navigator === 'undefined') return false
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  }, [])
-
   const enterFullscreen = useCallback(() => {
     const el = containerRef.current
     if (!el) return
-    // Only use native fullscreen API on non-iOS (desktop/Android)
-    if (!isIOS() && el.requestFullscreen) {
+    // Use webkit fullscreen on iOS/iPadOS to hide Safari's browser chrome
+    // (address bar + tab bar). We cover the iOS system Done button with a
+    // max-z-index overlay panel so only our own ✕ button is visible.
+    if (el.requestFullscreen) {
       el.requestFullscreen().catch(() => {})
+    } else if ((el as any).webkitRequestFullscreen) {
+      ;(el as any).webkitRequestFullscreen()
     }
-    // On iOS: CSS-only fullscreen (position:fixed set via isFullscreen state)
     setIsFullscreen(true)
-  }, [isIOS])
+  }, [])
 
   const exitFullscreen = useCallback(() => {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
@@ -237,17 +228,29 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     }
   }, [])
 
-  // While fullscreen: block ALL touch movement outside the scroll container
-  // so nothing can trigger Safari's pull-to-refresh or page-level overscroll
+  // While fullscreen: block ALL document-level touch movement.
+  // Touches inside the scroll container are allowed; everything else is blocked
+  // so iOS cannot detect an overscroll and trigger its pull-to-dismiss gesture.
   useEffect(() => {
     if (!isFullscreen) return
     const preventOutside = (e: TouchEvent) => {
       const sc = scrollRef.current
-      if (sc && sc.contains(e.target as Node)) return // let the scroller handle it
+      if (sc && sc.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    const preventTouchStart = (e: TouchEvent) => {
+      const sc = scrollRef.current
+      if (sc && sc.contains(e.target as Node)) return
+      const container = containerRef.current
+      if (container && container.contains(e.target as Node)) return
       e.preventDefault()
     }
     document.addEventListener('touchmove', preventOutside, { passive: false })
-    return () => document.removeEventListener('touchmove', preventOutside)
+    document.addEventListener('touchstart', preventTouchStart, { passive: false })
+    return () => {
+      document.removeEventListener('touchmove', preventOutside)
+      document.removeEventListener('touchstart', preventTouchStart)
+    }
   }, [isFullscreen])
 
   // Lock the page body so it cannot scroll/bounce while our CSS fullscreen is active
@@ -357,6 +360,23 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         }),
       }}
     >
+      {/* iOS fullscreen Done-button cover
+          When webkitRequestFullscreen is active, iOS renders a native "Done"
+          button at the top-left of the fullscreen element. We cover it with a
+          panel-colored block at the maximum possible z-index so it's invisible
+          and untappable, leaving only our own ✕ button (right side) visible.
+          Using position:fixed ensures this sits in the root stacking context,
+          above the toolbar's own stacking context. */}
+      {isFullscreen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0,
+          width: 140, height: 70,
+          background: C.bgPanel,
+          zIndex: 2147483647,
+          pointerEvents: 'all',
+        }} />
+      )}
+
       {/* Toolbar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
