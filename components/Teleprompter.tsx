@@ -226,24 +226,28 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     }
   }, [])
 
-  // Lock body scroll when fullscreen — prevents iOS from showing browser chrome on swipe-down
+  // Block overscroll on the scroll container when fullscreen —
+  // prevents iOS native fullscreen from exiting when user scrolls past top/bottom
   useEffect(() => {
-    if (isFullscreen) {
-      document.body.style.position = 'fixed'
-      document.body.style.overflow = 'hidden'
-      document.body.style.width = '100%'
-      document.documentElement.style.overflow = 'hidden'
-    } else {
-      document.body.style.position = ''
-      document.body.style.overflow = ''
-      document.body.style.width = ''
-      document.documentElement.style.overflow = ''
+    if (!isFullscreen) return
+    const sc = scrollRef.current
+    if (!sc) return
+    let startY = 0
+    const onStart = (e: TouchEvent) => { startY = e.touches[0].clientY }
+    const onMove = (e: TouchEvent) => {
+      const dy = e.touches[0].clientY - startY
+      const atTop = sc.scrollTop <= 0
+      const atBottom = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2
+      // Block upward overscroll at top (dy > 0 = finger moving down = scroll content up)
+      if (atTop && dy > 0) { e.preventDefault(); return }
+      // Block downward overscroll at bottom
+      if (atBottom && dy < 0) { e.preventDefault(); return }
     }
+    sc.addEventListener('touchstart', onStart, { passive: true })
+    sc.addEventListener('touchmove', onMove, { passive: false })
     return () => {
-      document.body.style.position = ''
-      document.body.style.overflow = ''
-      document.body.style.width = ''
-      document.documentElement.style.overflow = ''
+      sc.removeEventListener('touchstart', onStart)
+      sc.removeEventListener('touchmove', onMove)
     }
   }, [isFullscreen])
 
@@ -321,8 +325,17 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
         background: C.bgPanel, borderBottom: `1px solid ${C.border}`,
         flexWrap: 'wrap', rowGap: 6, flexShrink: 0,
-        minHeight: 56,
+        minHeight: 56, position: 'relative',
       }}>
+        {/* iOS native fullscreen places its own system X button at the top-left of our
+            toolbar layer. Cover it with an opaque panel-colored block so only our ✕
+            button (right side) is used to exit. */}
+        {isFullscreen && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: 68, height: '100%',
+            background: C.bgPanel, zIndex: 20,
+          }} />
+        )}
         {/* Playback group */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {/* Restart button — hidden in fullscreen since ✕ is already there */}
