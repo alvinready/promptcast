@@ -46,7 +46,7 @@ function EnhancedView({ text, settings }: { text: string; settings: Teleprompter
   const C = getColors(settings.theme)
   const lines = text.split('\n')
   return (
-    <div style={{ padding: `60px ${settings.padding}px 80vh`, maxWidth: 1100, margin: '0 auto', textAlign: settings.textAlign }}>
+    <div style={{ padding: `20px ${settings.padding}px 50vh`, maxWidth: 1100, margin: '0 auto', textAlign: settings.textAlign }}>
       {lines.map((line, i) => {
         const trimmed = line.trim()
         if (!trimmed) return <div key={i} style={{ height: '1.2em' }} />
@@ -223,7 +223,14 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     // prevents the iOS swipe-to-dismiss gesture from firing.
     // True chrome-free fullscreen on iOS requires PWA installation (see tip).
     setIsFullscreen(true)
-    if (ios && !isStandalone) setShowInstallTip(true)
+    if (ios && !isStandalone) {
+      try {
+        if (!localStorage.getItem('pc_install_tip_shown')) {
+          setShowInstallTip(true)
+          localStorage.setItem('pc_install_tip_shown', '1')
+        }
+      } catch {}
+    }
   }, [isIOSSafari, isStandalone])
 
   const exitFullscreen = useCallback(() => {
@@ -388,16 +395,14 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       }}>
         {/* Playback group */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* Restart button — hidden in fullscreen since ✕ is already there */}
-          {!isFullscreen && (
-            <ToolBtn onClick={reset} title="Restart from beginning (R)" C={C}>
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="2.5" y1="1.5" x2="2.5" y2="13.5" />
-                <polyline points="0,4 2.5,1.5 5,4" />
-                <path d="M5.5 4 A5 5 0 1 1 2.5 8.5" />
-              </svg>
-            </ToolBtn>
-          )}
+          {/* Restart button */}
+          <ToolBtn onClick={reset} title="Restart from beginning (R)" C={C}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="2.5" y1="1.5" x2="2.5" y2="13.5" />
+              <polyline points="0,4 2.5,1.5 5,4" />
+              <path d="M5.5 4 A5 5 0 1 1 2.5 8.5" />
+            </svg>
+          </ToolBtn>
 
           {/* Play / Pause */}
           <button
@@ -588,7 +593,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
               <EnhancedView text={enhancedText} settings={settings} />
             ) : (
               <div style={{
-                padding: `60px ${settings.padding}px 80vh`,
+                padding: `20px ${settings.padding}px 50vh`,
                 fontSize: settings.fontSize,
                 lineHeight: settings.lineHeight,
                 color: settings.textColor,
@@ -610,7 +615,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           </div>
         </div>
 
-        {paragraphs.length > 0 && <TapHint isPlaying={isPlaying} C={C} />}
+        {paragraphs.length > 0 && <TapHint isPlaying={isPlaying} atStart={progress < 0.02} C={C} />}
 
         {/* Progress bar */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: C.bgCard, pointerEvents: 'none' }}>
@@ -618,8 +623,8 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         </div>
       </div>
 
-      {/* Hint bar */}
-      <div style={{
+      {/* Hint bar — keyboard shortcuts, hidden on touch devices */}
+      <div className="kb-hints" style={{
         background: C.bgPanel, borderTop: `1px solid ${C.border}`,
         padding: '4px 16px', fontSize: 10, color: C.textFaint,
         display: 'flex', gap: 12, flexWrap: 'wrap', flexShrink: 0,
@@ -631,19 +636,21 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         <span>F: fullscreen</span>
         <span>Tap script: play/pause</span>
       </div>
+      <style>{`@media (pointer: coarse) { .kb-hints { display: none !important; } }`}</style>
     </div>
   )
 }
 
-function TapHint({ isPlaying, C }: { isPlaying: boolean; C: ReturnType<typeof getColors> }) {
+function TapHint({ isPlaying, atStart, C }: { isPlaying: boolean; atStart: boolean; C: ReturnType<typeof getColors> }) {
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
-    if (isPlaying) { setVisible(false); return }
+    // Only show the hint when at the beginning and not playing
+    if (isPlaying || !atStart) { setVisible(false); return }
     setVisible(true)
     const t = setTimeout(() => setVisible(false), 2500)
     return () => clearTimeout(t)
-  }, [isPlaying])
+  }, [isPlaying, atStart])
 
   if (!visible) return null
 
