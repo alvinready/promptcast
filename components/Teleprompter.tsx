@@ -122,6 +122,15 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
   const [progress, setProgress] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showInstallTip, setShowInstallTip] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
+
+  // Detect PWA standalone mode (no browser chrome, fullscreen is native)
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+      !!(window.navigator as any).standalone
+    setIsStandalone(standalone)
+  }, [])
 
   // AI enhancement state
   const [enhancedText, setEnhancedText] = useState<string | null>(null)
@@ -193,19 +202,29 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     if (scrollRef.current) scrollRef.current.scrollTop += dir * 100
   }
 
+  const isIOSSafari = useCallback(() => {
+    if (typeof navigator === 'undefined') return false
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  }, [])
+
   const enterFullscreen = useCallback(() => {
     const el = containerRef.current
     if (!el) return
-    // Use webkit fullscreen on iOS/iPadOS to hide Safari's browser chrome
-    // (address bar + tab bar). We cover the iOS system Done button with a
-    // max-z-index overlay panel so only our own ✕ button is visible.
-    if (el.requestFullscreen) {
+    const ios = isIOSSafari()
+    if (!ios && el.requestFullscreen) {
+      // Desktop / Android: use native API (no system X button on these platforms)
       el.requestFullscreen().catch(() => {})
-    } else if ((el as any).webkitRequestFullscreen) {
-      ;(el as any).webkitRequestFullscreen()
     }
+    // iOS: CSS-only fullscreen. webkitRequestFullscreen is intentionally skipped
+    // because it adds an un-removable native system X button (rendered above all
+    // web content, impossible to cover regardless of z-index). CSS-only gives us
+    // a clean toolbar with only our own ✕ button, and the scroll-blocking below
+    // prevents the iOS swipe-to-dismiss gesture from firing.
+    // True chrome-free fullscreen on iOS requires PWA installation (see tip).
     setIsFullscreen(true)
-  }, [])
+    if (ios && !isStandalone) setShowInstallTip(true)
+  }, [isIOSSafari, isStandalone])
 
   const exitFullscreen = useCallback(() => {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
@@ -360,23 +379,6 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         }),
       }}
     >
-      {/* iOS fullscreen Done-button cover
-          When webkitRequestFullscreen is active, iOS renders a native "Done"
-          button at the top-left of the fullscreen element. We cover it with a
-          panel-colored block at the maximum possible z-index so it's invisible
-          and untappable, leaving only our own ✕ button (right side) visible.
-          Using position:fixed ensures this sits in the root stacking context,
-          above the toolbar's own stacking context. */}
-      {isFullscreen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0,
-          width: 140, height: 70,
-          background: C.bgPanel,
-          zIndex: 2147483647,
-          pointerEvents: 'all',
-        }} />
-      )}
-
       {/* Toolbar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
@@ -523,6 +525,27 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           </ToolBtn>
         )}
       </div>
+
+      {/* Install tip — shown once on iOS when entering fullscreen */}
+      {showInstallTip && (
+        <div style={{
+          background: '#1a1a2e', borderBottom: `1px solid ${C.accent}55`,
+          padding: '10px 16px', display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', gap: 12, flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>📱</span>
+            <span style={{ fontSize: 12, color: '#e0e0e0', lineHeight: 1.4 }}>
+              <strong style={{ color: C.accent }}>Get true fullscreen:</strong>{' '}
+              Tap <strong style={{ color: '#fff' }}>Share ↑ → Add to Home Screen</strong> — installs PromptCast as an app with no browser bar, no system buttons.
+            </span>
+          </div>
+          <button onClick={() => setShowInstallTip(false)} style={{
+            background: 'none', border: 'none', color: '#888', cursor: 'pointer',
+            fontSize: 16, padding: '4px 8px', flexShrink: 0,
+          }}>✕</button>
+        </div>
+      )}
 
       {/* Error banner */}
       {enhanceError && (
