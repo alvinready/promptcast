@@ -50,6 +50,32 @@ function EnhancedView({ text, settings }: { text: string; settings: Teleprompter
       {lines.map((line, i) => {
         const trimmed = line.trim()
         if (!trimmed) return <div key={i} style={{ height: '1.2em' }} />
+
+        // Section break — look ahead for the next heading to use as label
+        if (trimmed === '---') {
+          let nextSection = ''
+          for (let j = i + 1; j < lines.length; j++) {
+            const next = lines[j].trim()
+            if (next.startsWith('**') && next.endsWith('**')) {
+              nextSection = next.slice(2, -2).toUpperCase()
+              break
+            }
+            if (next && !next.startsWith('•')) break
+          }
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '1.8em 0', opacity: 0.8 }}>
+              <div style={{ flex: 1, height: 1, background: `${C.accent}55` }} />
+              <span style={{
+                fontSize: 10, letterSpacing: '2.5px', textTransform: 'uppercase',
+                color: C.accent, fontFamily: 'system-ui, sans-serif', fontWeight: 700,
+                whiteSpace: 'nowrap', padding: '0 4px',
+              }}>
+                {nextSection || '· · ·'}
+              </span>
+              <div style={{ flex: 1, height: 1, background: `${C.accent}55` }} />
+            </div>
+          )
+        }
         if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
           return (
             <h3 key={i} style={{
@@ -191,7 +217,18 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     return () => cancelAnimationFrame(rafRef.current)
   }, [isPlaying, scroll])
 
-  const togglePlay = useCallback(() => setIsPlaying(p => !p), [])
+  const togglePlay = useCallback(() => {
+    const sc = scrollRef.current
+    const atEnd = sc ? sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 20 : false
+    if (!isPlaying && atEnd) {
+      // At the end — restart from top then play
+      if (sc) sc.scrollTop = 0
+      setProgress(0)
+      setElapsed(0)
+      accumulatorRef.current = 0
+    }
+    setIsPlaying(p => !p)
+  }, [isPlaying])
 
   const reset = useCallback(() => {
     setIsPlaying(false)
@@ -509,12 +546,10 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           )}
         </div>
 
-        {/* Status + fullscreen */}
-        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexWrap: 'wrap' }}>
-          {elapsed > 0 && (
-            <span style={{ fontSize: 10, color: C.textFaint }}>
-              {readTime && `${readTime} est.`}
-            </span>
+        {/* Status + fullscreen — single group so fullscreen never wraps to its own row */}
+        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexShrink: 0 }}>
+          {elapsed > 0 && readTime && (
+            <span style={{ fontSize: 10, color: C.textFaint, whiteSpace: 'nowrap' }}>{readTime} est.</span>
           )}
           {viewMode === 'bullets' && (
             <span style={{ fontSize: 10, color: C.accentText, background: C.accent, borderRadius: 6, padding: '3px 7px', fontWeight: 700, letterSpacing: '0.3px' }}>AI</span>
@@ -522,21 +557,12 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           {settings.mirrorH && <Badge C={C}>Mirror H</Badge>}
           {settings.mirrorV && <Badge C={C}>Mirror V</Badge>}
           {isPlaying && <Badge C={C} active>● LIVE</Badge>}
-          <span style={{ fontSize: 11, color: C.textFaint, minWidth: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-            {Math.round(progress * 100)}%
-          </span>
+          {isFullscreen ? (
+            <ToolBtn onClick={exitFullscreen} title="Exit fullscreen (F)" C={C}><IconClose /></ToolBtn>
+          ) : (
+            <ToolBtn onClick={enterFullscreen} title="Fullscreen (F)" C={C}><IconFullscreen /></ToolBtn>
+          )}
         </div>
-
-        {/* Fullscreen toggle — always visible */}
-        {isFullscreen ? (
-          <ToolBtn onClick={exitFullscreen} title="Exit fullscreen (F)" C={C}>
-            <IconClose />
-          </ToolBtn>
-        ) : (
-          <ToolBtn onClick={enterFullscreen} title="Fullscreen (F)" C={C}>
-            <IconFullscreen />
-          </ToolBtn>
-        )}
       </div>
 
       {/* Install tip — shown once on iOS when entering fullscreen */}

@@ -126,7 +126,7 @@ export default function Home() {
           padding: '0 12px', height: 50, background: C.bgPanel,
           borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
             {/* Sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(o => !o)}
@@ -155,8 +155,9 @@ export default function Home() {
             {activeScript && (
               <span style={{
                 fontSize: 12, color: C.textMuted, borderLeft: `1px solid ${C.border}`,
-                paddingLeft: 10, marginLeft: 2, maxWidth: 160,
+                paddingLeft: 10, marginLeft: 2,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                minWidth: 0, flex: 1,
               }}>
                 {activeScript.title}
               </span>
