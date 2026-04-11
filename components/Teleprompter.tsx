@@ -63,14 +63,17 @@ function EnhancedView({ text, settings }: { text: string; settings: Teleprompter
           )
         }
         if (trimmed.startsWith('•')) {
+          // Use inline layout so textAlign cascades correctly from parent
           return (
             <div key={i} style={{
-              display: 'flex', gap: '0.75em', marginBottom: '0.6em', alignItems: 'flex-start',
+              marginBottom: '0.6em',
+              fontSize: settings.fontSize * 0.65,
+              lineHeight: settings.lineHeight,
+              fontFamily: 'system-ui, sans-serif',
+              color: C.textPrimary,
             }}>
-              <span style={{ color: C.accent, fontSize: settings.fontSize * 0.65, marginTop: '0.1em', flexShrink: 0 }}>◆</span>
-              <p style={{ fontSize: settings.fontSize * 0.65, lineHeight: settings.lineHeight, color: C.textPrimary, margin: 0, fontFamily: 'system-ui, sans-serif' }}>
-                <RichText text={trimmed.slice(1).trim()} color={C.accent} />
-              </p>
+              <span style={{ color: C.accent, marginRight: '0.45em' }}>◆</span>
+              <RichText text={trimmed.slice(1).trim()} color={C.accent} />
             </div>
           )
         }

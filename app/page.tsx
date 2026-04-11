@@ -19,7 +19,7 @@ export default function Home() {
   const [showEditor, setShowEditor] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [showDrive, setShowDrive] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { settings, update } = useTeleprompterSettings()
   const C = getColors(settings.theme)
 
@@ -27,6 +27,8 @@ export default function Home() {
     const loaded = loadScripts()
     setScripts(loaded)
     if (loaded.length > 0) setActiveId(loaded[0].id)
+    // Auto-open sidebar on tablet/desktop, keep closed on phone
+    if (window.innerWidth >= 768) setSidebarOpen(true)
   }, [])
 
   const persist = (updated: Script[]) => {
@@ -89,14 +91,21 @@ export default function Home() {
 
   return (
     <>
-      {/* Global mobile styles */}
+      {/* Global styles */}
       <style>{`
         * { box-sizing: border-box; }
         body { overscroll-behavior: none; }
         ::-webkit-scrollbar { display: none; }
-        @media (max-width: 600px) {
+        /* Mobile: sidebar slides in as absolute panel over content */
+        @media (max-width: 768px) {
           .sidebar-overlay { display: block !important; }
-          .sidebar-push { display: none !important; }
+          .sidebar-push {
+            position: absolute !important;
+            left: 0; top: 0; bottom: 0;
+            width: min(300px, 88vw) !important;
+            z-index: 41 !important;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.5) !important;
+          }
         }
       `}</style>
 
@@ -173,8 +182,8 @@ export default function Home() {
                 onClick={() => setSidebarOpen(false)}
                 style={{
                   display: 'none',
-                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
-                  zIndex: 40, backdropFilter: 'blur(2px)',
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)',
+                  zIndex: 40,
                 }}
               />
               <div
@@ -183,7 +192,7 @@ export default function Home() {
               >
                 <Sidebar
                   scripts={scripts} activeId={activeId}
-                  onSelect={id => { setActiveId(id); if (window.innerWidth < 600) setSidebarOpen(false) }}
+                  onSelect={id => { setActiveId(id); if (window.innerWidth < 768) setSidebarOpen(false) }}
                   onNew={handleNew} onEdit={handleEdit}
                   onDelete={handleDelete} onDuplicate={handleDuplicate}
                   onImport={() => setShowImport(true)}
