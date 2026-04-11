@@ -193,18 +193,28 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     if (scrollRef.current) scrollRef.current.scrollTop += dir * 100
   }
 
-  // Fullscreen — use webkit on iOS/iPad to hide the browser chrome (tab bar + address bar)
+  // Detect iOS/iPadOS — on these devices webkitRequestFullscreen adds an
+  // unremovable system X button and enables a swipe-to-exit gesture that we
+  // cannot intercept. We therefore skip it entirely and rely on CSS-only
+  // fullscreen (position:fixed / z-index:9999). Safari auto-hides its chrome
+  // once the user starts scrolling, giving a near-fullscreen feel in practice.
+  // For a truly chrome-free experience the user can "Add to Home Screen".
+  const isIOS = useCallback(() => {
+    if (typeof navigator === 'undefined') return false
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  }, [])
+
   const enterFullscreen = useCallback(() => {
     const el = containerRef.current
     if (!el) return
-    if (el.requestFullscreen) {
+    // Only use native fullscreen API on non-iOS (desktop/Android)
+    if (!isIOS() && el.requestFullscreen) {
       el.requestFullscreen().catch(() => {})
-    } else if ((el as any).webkitRequestFullscreen) {
-      // webkitRequestFullscreen on iPad hides Safari's chrome (address bar + tab bar)
-      (el as any).webkitRequestFullscreen()
     }
+    // On iOS: CSS-only fullscreen (position:fixed set via isFullscreen state)
     setIsFullscreen(true)
-  }, [])
+  }, [isIOS])
 
   const exitFullscreen = useCallback(() => {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {})
@@ -212,7 +222,8 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     setIsFullscreen(false)
   }, [])
 
-  // Listen for native fullscreen exit (Esc on desktop, done button on iOS)
+  // Listen for native fullscreen exit (Esc on desktop) — not triggered on iOS
+  // since we never call webkitRequestFullscreen there
   useEffect(() => {
     const handler = () => {
       const native = !!(document.fullscreenElement || (document as any).webkitFullscreenElement)
@@ -226,8 +237,36 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     }
   }, [])
 
-  // Block overscroll on the scroll container when fullscreen —
-  // prevents iOS native fullscreen from exiting when user scrolls past top/bottom
+  // While fullscreen: block ALL touch movement outside the scroll container
+  // so nothing can trigger Safari's pull-to-refresh or page-level overscroll
+  useEffect(() => {
+    if (!isFullscreen) return
+    const preventOutside = (e: TouchEvent) => {
+      const sc = scrollRef.current
+      if (sc && sc.contains(e.target as Node)) return // let the scroller handle it
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', preventOutside, { passive: false })
+    return () => document.removeEventListener('touchmove', preventOutside)
+  }, [isFullscreen])
+
+  // Lock the page body so it cannot scroll/bounce while our CSS fullscreen is active
+  useEffect(() => {
+    if (!isFullscreen) return
+    const prev = { pos: document.body.style.position, ov: document.body.style.overflow, docOv: document.documentElement.style.overflow }
+    document.body.style.position = 'fixed'
+    document.body.style.overflow = 'hidden'
+    document.body.style.width = '100%'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.position = prev.pos
+      document.body.style.overflow = prev.ov
+      document.body.style.width = ''
+      document.documentElement.style.overflow = prev.docOv
+    }
+  }, [isFullscreen])
+
+  // Also block overscroll at the top/bottom edges of the scroll container
   useEffect(() => {
     if (!isFullscreen) return
     const sc = scrollRef.current
@@ -238,9 +277,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       const dy = e.touches[0].clientY - startY
       const atTop = sc.scrollTop <= 0
       const atBottom = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2
-      // Block upward overscroll at top (dy > 0 = finger moving down = scroll content up)
       if (atTop && dy > 0) { e.preventDefault(); return }
-      // Block downward overscroll at bottom
       if (atBottom && dy < 0) { e.preventDefault(); return }
     }
     sc.addEventListener('touchstart', onStart, { passive: true })
@@ -327,15 +364,6 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         flexWrap: 'wrap', rowGap: 6, flexShrink: 0,
         minHeight: 56, position: 'relative',
       }}>
-        {/* iOS native fullscreen places its own system X button at the top-left of our
-            toolbar layer. Cover it with an opaque panel-colored block so only our ✕
-            button (right side) is used to exit. */}
-        {isFullscreen && (
-          <div style={{
-            position: 'absolute', top: 0, left: 0, width: 68, height: '100%',
-            background: C.bgPanel, zIndex: 20,
-          }} />
-        )}
         {/* Playback group */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {/* Restart button — hidden in fullscreen since ✕ is already there */}
