@@ -365,7 +365,12 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
   const readTime = estimateReadTime(text, settings.scrollSpeed)
   const promptBg = settings.darkBg ? C.promptBg : C.promptBgAlt
 
-  const enhanceBtnLabel = isEnhancing ? '⏳' : enhancedText ? (viewMode === 'bullets' ? '📄 Full' : '✨ Keywords') : '✨ Keywords'
+  // Button content — animated dots while processing, labels otherwise
+  const enhanceBtnContent = isEnhancing
+    ? <ThinkingDots />
+    : enhancedText
+      ? (viewMode === 'bullets' ? '📄 Full Script' : 'Ai Simplify')
+      : 'Ai Simplify'
 
   return (
     <div
@@ -491,7 +496,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
             onMouseUp={e => (e.currentTarget.style.boxShadow = viewMode === 'bullets' && enhancedText ? C.btnShadowAccent : C.btnShadow)}
             onMouseLeave={e => (e.currentTarget.style.boxShadow = viewMode === 'bullets' && enhancedText ? C.btnShadowAccent : C.btnShadow)}
           >
-            {enhanceBtnLabel}
+            {enhanceBtnContent}
           </button>
           {enhancedText && (
             <button onClick={() => { setEnhancedText(null); setViewMode('full') }} title="Clear AI keywords" style={{
@@ -638,6 +643,31 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       </div>
       <style>{`@media (pointer: coarse) { .kb-hints { display: none !important; } }`}</style>
     </div>
+  )
+}
+
+function ThinkingDots() {
+  return (
+    <>
+      <style>{`
+        @keyframes aiDotBounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+          30% { transform: translateY(-5px); opacity: 1; }
+        }
+        .ai-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: currentColor; display: inline-block;
+          animation: aiDotBounce 1.1s ease-in-out infinite;
+        }
+        .ai-dot:nth-child(2) { animation-delay: 0.18s; }
+        .ai-dot:nth-child(3) { animation-delay: 0.36s; }
+      `}</style>
+      <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', height: '1.1em', verticalAlign: 'middle' }}>
+        <span className="ai-dot" />
+        <span className="ai-dot" />
+        <span className="ai-dot" />
+      </span>
+    </>
   )
 }
 
