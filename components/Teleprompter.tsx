@@ -125,14 +125,6 @@ const IconPause = () => (
     <rect x="10.5" y="2" width="4.5" height="14" rx="1.5" />
   </svg>
 )
-const IconRestart = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="3" y1="2" x2="3" y2="14" />
-    <path d="M7 4H12C13.1 4 14 4.9 14 6V10C14 11.1 13.1 12 12 12H6" />
-    <polyline points="3,8 6,5 6,11" transform="translate(0,-4)" />
-    <polyline points="5,4.5 3,2 1,4.5" />
-  </svg>
-)
 const IconFullscreen = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
     <path d="M1 5V2h3M10 2h3v3M14 10v3h-3M5 13H2v-3" />
@@ -576,7 +568,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
             <span style={{ fontSize: 18 }}>📱</span>
             <span style={{ fontSize: 12, color: '#e0e0e0', lineHeight: 1.4 }}>
               <strong style={{ color: C.accent }}>Get true fullscreen:</strong>{' '}
-              Tap <strong style={{ color: '#fff' }}>Share ↑ → Add to Home Screen</strong> — installs PromptCast as an app with no browser bar, no system buttons.
+              Tap <strong style={{ color: '#fff' }}>Share ↑ → Add to Home Screen</strong> — installs AiPrompter as an app with no browser bar, no system buttons.
             </span>
           </div>
           <button onClick={() => setShowInstallTip(false)} style={{

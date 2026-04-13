@@ -1,6 +1,7 @@
 {
-  "name": "promptcast",
+  "name": "aiprompter",
   "version": "1.0.0",
+  "description": "AiPrompter — professional AI teleprompter for iPad, iPhone & desktop",
   "private": true,
   "scripts": {
     "dev": "next dev",

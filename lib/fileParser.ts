@@ -20,7 +20,7 @@ export async function parseFile(file: File): Promise<string> {
   }
 
   if (ext === 'pdf') {
-    return `[PDF file "${file.name}" uploaded.\n\nTo use with PromptCast, please:\n1. Open the PDF in Files or Preview\n2. Select all text (⌘A) and copy\n3. Create a new script and paste your text]`
+    return `[PDF file "${file.name}" uploaded.\n\nTo use with AiPrompter, please:\n1. Open the PDF in Files or Preview\n2. Select all text (⌘A) and copy\n3. Create a new script and paste your text]`
   }
 
   // fallback: try plain text
