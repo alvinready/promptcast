@@ -564,28 +564,41 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
 
         <Divider C={C} />
 
-        {/* Play / Pause */}
-        <button
-          onClick={togglePlay}
-          title={countdown !== null ? 'Cancel start' : 'Play/Pause (Space)'}
-          style={{
-            width: 52, height: 52, borderRadius: '50%',
-            background: isPlaying || countdown !== null ? C.accentDim : C.accentGradient,
-            border: 'none',
-            color: C.accentText,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: C.btnShadowAccent,
-            transition: `background ${MOTION.base} ${MOTION.out}, box-shadow ${MOTION.base} ${MOTION.out}, transform ${MOTION.base} ${MOTION.spring}`,
-            flexShrink: 0,
-            fontSize: 20, fontWeight: 700, fontFamily: 'system-ui, sans-serif',
-          }}
-          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
-          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-        >
-          {countdown !== null ? countdown : isPlaying ? <IconPause /> : <IconPlay />}
-        </button>
+        {/* Play / Pause — the standalone "● LIVE" badge is gone; the same
+            status is now carried by a rotating ring around the button
+            itself while playing, so there's no separate pop-up to track. */}
+        <div style={{ position: 'relative', flexShrink: 0, width: 52, height: 52 }}>
+          {isPlaying && (
+            <div style={{
+              position: 'absolute', inset: -6, borderRadius: '50%',
+              border: '3px solid transparent',
+              borderTopColor: C.accent,
+              borderRightColor: `${C.accent}66`,
+              animation: 'spin 1.3s linear infinite',
+              pointerEvents: 'none',
+            }} />
+          )}
+          <button
+            onClick={togglePlay}
+            title={countdown !== null ? 'Cancel start' : 'Play/Pause (Space)'}
+            style={{
+              width: 52, height: 52, borderRadius: '50%',
+              background: isPlaying || countdown !== null ? C.accentDim : C.accentGradient,
+              border: 'none',
+              color: C.accentText,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: C.btnShadowAccent,
+              transition: `background ${MOTION.base} ${MOTION.out}, box-shadow ${MOTION.base} ${MOTION.out}, transform ${MOTION.base} ${MOTION.spring}`,
+              fontSize: 20, fontWeight: 700, fontFamily: 'system-ui, sans-serif',
+            }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            {countdown !== null ? countdown : isPlaying ? <IconPause /> : <IconPlay />}
+          </button>
+        </div>
 
         <Divider C={C} />
 
@@ -670,16 +683,20 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
         {/* Speed group — a rounded block, not a pill: it holds a rectangular
             wheel, and forcing that into a full capsule was clipping its
             corners against the curve. Blocks for boxy content, pills for
-            round/text-only content. */}
+            round/text-only content. The "SPEED" label now stacks above the
+            value instead of sitting beside it, trimming enough width for
+            Ai Simplify to fit on the same row instead of wrapping. */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
           borderRadius: RADIUS.lg, background: glassSheen(C.glassCard), backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
           border: `1px solid ${C.border}`,
         }}>
-          <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
-          <span style={{ fontSize: 15, fontWeight: 700, minWidth: 40, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
-            {settings.scrollSpeed.toFixed(1)}×
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 34 }}>
+            <span style={{ fontSize: 8, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase', lineHeight: 1.3 }}>Speed</span>
+            <span style={{ fontSize: 14, fontWeight: 700, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif', lineHeight: 1.3 }}>
+              {settings.scrollSpeed.toFixed(1)}×
+            </span>
+          </div>
           <SpeedWheel
             value={settings.scrollSpeed}
             onChange={v => onSettingChange({ scrollSpeed: v })}
@@ -726,12 +743,13 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
         <Divider C={C} push />
 
         {/* Status — fullscreen, mirror badges, and the read-time estimate now
-            live in the app header up top, so this stays lightweight */}
+            live in the app header up top, so this stays lightweight. Live
+            status is now shown by the rotating ring on the play button
+            instead of a separate badge here. */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {viewMode === 'bullets' && (
             <span style={{ fontSize: 10, color: C.accentText, background: C.accent, borderRadius: 6, padding: '3px 7px', fontWeight: 700, letterSpacing: '0.3px' }}>AI</span>
           )}
-          {isPlaying && <Badge C={C} active>● LIVE</Badge>}
         </div>
       </div>
       </div>
