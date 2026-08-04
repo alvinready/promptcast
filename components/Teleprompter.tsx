@@ -135,12 +135,12 @@ function EnhancedView({ text, settings }: { text: string; settings: Teleprompter
 
 // SVG icons
 const IconPlay = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+  <svg width="22" height="22" viewBox="0 0 18 18" fill="currentColor">
     <polygon points="5,2 16,9 5,16" />
   </svg>
 )
 const IconPause = () => (
-  <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+  <svg width="22" height="22" viewBox="0 0 18 18" fill="currentColor">
     <rect x="3" y="2" width="4.5" height="14" rx="1.5" />
     <rect x="10.5" y="2" width="4.5" height="14" rx="1.5" />
   </svg>
@@ -164,7 +164,7 @@ const IconArrowUp = () => (
   </svg>
 )
 const IconTimer = () => (
-  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="19" height="19" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="7.5" cy="8.2" r="5.3" />
     <line x1="7.5" y1="8.2" x2="7.5" y2="4.8" />
     <line x1="7.5" y1="8.2" x2="10" y2="9.6" />
@@ -514,106 +514,112 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
         </button>
       )}
 
-      {/* Toolbar */}
+      {/* Toolbar — each option gets its own divider and breathing room */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+        display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px',
         background: C.bgPanel, borderBottom: `1px solid ${C.border}`,
-        flexWrap: 'wrap', rowGap: 6, flexShrink: 0,
-        minHeight: 56, position: 'relative',
+        flexWrap: 'wrap', rowGap: 12, flexShrink: 0,
+        minHeight: 64, position: 'relative',
       }}>
-        {/* Playback group */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* Back to top */}
-          <ToolBtn onClick={reset} title="Back to top (R)" C={C}>
-            <IconArrowUp />
-          </ToolBtn>
+        {/* Back to top */}
+        <ToolBtn onClick={reset} title="Back to top (R)" C={C}>
+          <IconArrowUp />
+        </ToolBtn>
 
-          {/* Play / Pause */}
-          <button
-            onClick={togglePlay}
-            title={countdown !== null ? 'Cancel start' : 'Play/Pause (Space)'}
-            style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: isPlaying || countdown !== null ? C.accentDim : C.accent,
-              border: 'none',
-              color: C.accentText,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: C.btnShadowAccent,
-              transition: 'background 0.15s, box-shadow 0.1s',
-              flexShrink: 0,
-              fontSize: 17, fontWeight: 700, fontFamily: 'system-ui, sans-serif',
-            }}
-            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
-            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        <Divider C={C} />
+
+        {/* Play / Pause */}
+        <button
+          onClick={togglePlay}
+          title={countdown !== null ? 'Cancel start' : 'Play/Pause (Space)'}
+          style={{
+            width: 52, height: 52, borderRadius: '50%',
+            background: isPlaying || countdown !== null ? C.accentDim : C.accent,
+            border: 'none',
+            color: C.accentText,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: C.btnShadowAccent,
+            transition: 'background 0.15s, box-shadow 0.1s',
+            flexShrink: 0,
+            fontSize: 20, fontWeight: 700, fontFamily: 'system-ui, sans-serif',
+          }}
+          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+          onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          {countdown !== null ? countdown : isPlaying ? <IconPause /> : <IconPlay />}
+        </button>
+
+        <Divider C={C} />
+
+        {/* Start timer */}
+        <div style={{ position: 'relative' }}>
+          <ToolBtn
+            onClick={() => setShowTimerMenu(v => !v)}
+            title="Start delay"
+            C={C}
+            active={settings.startDelay > 0}
+            size={42}
           >
-            {countdown !== null ? countdown : isPlaying ? <IconPause /> : <IconPlay />}
-          </button>
-
-          {/* Start timer */}
-          <div style={{ position: 'relative' }}>
-            <ToolBtn
-              onClick={() => setShowTimerMenu(v => !v)}
-              title="Start delay"
-              C={C}
-              active={settings.startDelay > 0}
-            >
-              <IconTimer />
-            </ToolBtn>
-            {settings.startDelay > 0 && (
-              <span style={{
-                position: 'absolute', top: -4, right: -4, minWidth: 15, height: 15,
-                borderRadius: 8, background: C.accent, color: C.accentText,
-                fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', padding: '0 3px', fontFamily: 'system-ui, sans-serif',
-                pointerEvents: 'none',
-              }}>
-                {settings.startDelay}
-              </span>
-            )}
-            {showTimerMenu && (
-              <>
-                <div onClick={() => setShowTimerMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-                <div style={{
-                  position: 'absolute', top: 40, left: 0, zIndex: 21,
-                  background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12,
-                  padding: '10px 8px', boxShadow: '0 8px 24px rgba(0,0,0,0.35)', width: 100,
-                }}>
-                  <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, textAlign: 'center' }}>
-                    Start in
-                  </p>
-                  <TimerWheelPicker
-                    value={settings.startDelay}
-                    onChange={v => onSettingChange({ startDelay: v })}
-                    C={C}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Timer */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            minWidth: 36,
-          }}>
+            <IconTimer />
+          </ToolBtn>
+          {settings.startDelay > 0 && (
             <span style={{
-              fontVariantNumeric: 'tabular-nums',
-              fontSize: 14, fontWeight: 600, color: isPlaying ? C.accent : C.textPrimary,
-              lineHeight: 1, transition: 'color 0.2s',
-              fontFamily: 'system-ui, sans-serif',
+              position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16,
+              borderRadius: 8, background: C.accent, color: C.accentText,
+              fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', padding: '0 3px', fontFamily: 'system-ui, sans-serif',
+              pointerEvents: 'none',
             }}>
-              {formatElapsed(elapsed)}
+              {settings.startDelay}
             </span>
-            <span style={{ fontSize: 9, color: C.textFaint, letterSpacing: '0.5px', marginTop: 1 }}>
-              ELAPSED
-            </span>
-          </div>
+          )}
+          {showTimerMenu && (
+            <>
+              <div onClick={() => setShowTimerMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+              <div style={{
+                position: 'absolute', top: 48, left: 0, zIndex: 21,
+                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12,
+                padding: '10px 8px', boxShadow: '0 8px 24px rgba(0,0,0,0.35)', width: 100,
+              }}>
+                <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, textAlign: 'center' }}>
+                  Start in
+                </p>
+                <TimerWheelPicker
+                  value={settings.startDelay}
+                  onChange={v => onSettingChange({ startDelay: v })}
+                  C={C}
+                />
+              </div>
+            </>
+          )}
         </div>
 
+        <Divider C={C} />
+
+        {/* Elapsed */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          minWidth: 36,
+        }}>
+          <span style={{
+            fontVariantNumeric: 'tabular-nums',
+            fontSize: 14, fontWeight: 600, color: isPlaying ? C.accent : C.textPrimary,
+            lineHeight: 1, transition: 'color 0.2s',
+            fontFamily: 'system-ui, sans-serif',
+          }}>
+            {formatElapsed(elapsed)}
+          </span>
+          <span style={{ fontSize: 9, color: C.textFaint, letterSpacing: '0.5px', marginTop: 1 }}>
+            ELAPSED
+          </span>
+        </div>
+
+        <Divider C={C} />
+
         {/* Speed group — drag or scroll the wheel to adjust */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderLeft: `1px solid ${C.border}`, paddingLeft: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
           <span style={{ fontSize: 15, fontWeight: 700, minWidth: 40, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
             {settings.scrollSpeed.toFixed(1)}×
@@ -625,8 +631,10 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           />
         </div>
 
+        <Divider C={C} />
+
         {/* AI Keywords */}
-        <div style={{ borderLeft: `1px solid ${C.border}`, paddingLeft: 10, display: 'flex', gap: 5, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
           <button
             onClick={handleEnhance}
             disabled={isEnhancing || !text.trim()}
@@ -655,9 +663,11 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           )}
         </div>
 
+        <Divider C={C} push />
+
         {/* Status — fullscreen, mirror badges, and the read-time estimate now
             live in the app header up top, so this stays lightweight */}
-        <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {viewMode === 'bullets' && (
             <span style={{ fontSize: 10, color: C.accentText, background: C.accent, borderRadius: 6, padding: '3px 7px', fontWeight: 700, letterSpacing: '0.3px' }}>AI</span>
           )}
@@ -864,15 +874,26 @@ function CountdownOverlay({ seconds, C }: { seconds: number, C: ReturnType<typeo
   )
 }
 
-function ToolBtn({ children, onClick, title, C, active }: {
-  children: React.ReactNode, onClick: () => void, title?: string, C: ReturnType<typeof getColors>, active?: boolean
+// A slim vertical rule that separates each toolbar option from its
+// neighbors. `push` pins it (and everything after it) to the right edge.
+function Divider({ C, push }: { C: ReturnType<typeof getColors>, push?: boolean }) {
+  return (
+    <div style={{
+      width: 1, height: 30, background: C.border, borderRadius: 1,
+      flexShrink: 0, marginLeft: push ? 'auto' : undefined,
+    }} />
+  )
+}
+
+function ToolBtn({ children, onClick, title, C, active, size = 34 }: {
+  children: React.ReactNode, onClick: () => void, title?: string, C: ReturnType<typeof getColors>, active?: boolean, size?: number
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       style={{
-        width: 34, height: 34, background: active ? C.accentBg : C.bgCard,
+        width: size, height: size, background: active ? C.accentBg : C.bgCard,
         border: `1px solid ${active ? C.accentDim : C.border}`,
         color: active ? C.accent : C.textPrimary, borderRadius: 9, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
