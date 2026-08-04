@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { createPortal } from 'react-dom'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors, RADIUS, MOTION, GLASS_BLUR } from '@/lib/theme'
+import { getColors, RADIUS, MOTION, GLASS_BLUR, glassSheen } from '@/lib/theme'
 
 export interface TeleprompterHandle {
   toggleFullscreen: () => void
@@ -163,12 +164,14 @@ const IconArrowUp = () => (
     <polyline points="3,7 7.5,2.5 12,7" />
   </svg>
 )
+// Truly optically centered: circle center matches the viewBox center exactly,
+// with no external nub or handle throwing off the visual balance inside the
+// round button that wraps it.
 const IconTimer = () => (
-  <svg width="19" height="19" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="7.5" cy="8.2" r="5.3" />
-    <line x1="7.5" y1="8.2" x2="7.5" y2="4.8" />
-    <line x1="7.5" y1="8.2" x2="10" y2="9.6" />
-    <line x1="5.5" y1="0.8" x2="9.5" y2="0.8" />
+  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="8" r="6.2" />
+    <line x1="8" y1="8" x2="8" y2="4.6" />
+    <line x1="8" y1="8" x2="10.6" y2="9.6" />
   </svg>
 )
 
@@ -184,6 +187,9 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
   const [isStandalone, setIsStandalone] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [showTimerMenu, setShowTimerMenu] = useState(false)
+  const [timerMenuPos, setTimerMenuPos] = useState({ top: 0, left: 0 })
+  const timerBtnWrapRef = useRef<HTMLDivElement>(null)
+  const timerPopoverRef = useRef<HTMLDivElement>(null)
 
   // Detect PWA standalone mode (no browser chrome, fullscreen is native)
   useEffect(() => {
@@ -228,6 +234,28 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
     const t = setTimeout(() => setCountdown(c => (c !== null ? c - 1 : null)), 1000)
     return () => clearTimeout(t)
   }, [countdown])
+
+  // Start-timer popover: the toolbar's root container needs overflow:hidden
+  // for fullscreen mode, which would otherwise clip this popover to just its
+  // top sliver. Portaling it to document.body (see render below) escapes
+  // that clipping entirely; this effect just tracks where it should sit and
+  // closes it on an outside click/tap since it's no longer a DOM descendant
+  // of the button it's anchored to.
+  useEffect(() => {
+    if (!showTimerMenu) return
+    const btn = timerBtnWrapRef.current
+    if (btn) {
+      const rect = btn.getBoundingClientRect()
+      setTimerMenuPos({ top: rect.bottom + 10, left: rect.left })
+    }
+    const handleOutside = (e: MouseEvent) => {
+      if (timerPopoverRef.current?.contains(e.target as Node)) return
+      if (timerBtnWrapRef.current?.contains(e.target as Node)) return
+      setShowTimerMenu(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showTimerMenu])
 
   // Play timer
   useEffect(() => {
@@ -516,10 +544,14 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
 
       {/* Toolbar — a floating glass section, not an edge-to-edge bar. Each
           option still gets its own divider and breathing room inside it. */}
-      <div style={{ padding: '10px 12px 0', flexShrink: 0 }}>
+      {/* Bottom padding (not just top) gives the capsule's drop shadow room
+          to fade out before the viewport starts — without it the shadow was
+          getting hard-cropped by the opaque viewport background right below,
+          which read as a broken/cut-off shadow, especially in light mode. */}
+      <div style={{ padding: '10px 12px 14px', flexShrink: 0 }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px',
-        background: C.glassBg, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+        background: glassSheen(C.glassBg), backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
         border: `1px solid ${C.glassBorder}`, borderRadius: RADIUS.xl,
         boxShadow: '0 8px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
         flexWrap: 'wrap', rowGap: 12,
@@ -538,7 +570,7 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           title={countdown !== null ? 'Cancel start' : 'Play/Pause (Space)'}
           style={{
             width: 52, height: 52, borderRadius: '50%',
-            background: isPlaying || countdown !== null ? C.accentDim : C.accent,
+            background: isPlaying || countdown !== null ? C.accentDim : C.accentGradient,
             border: 'none',
             color: C.accentText,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -558,7 +590,7 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
         <Divider C={C} />
 
         {/* Start timer */}
-        <div style={{ position: 'relative' }}>
+        <div ref={timerBtnWrapRef} style={{ position: 'relative' }}>
           <ToolBtn
             onClick={() => setShowTimerMenu(v => !v)}
             title="Start delay"
@@ -579,37 +611,44 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
               {settings.startDelay}
             </span>
           )}
-          {showTimerMenu && (
-            <>
-              <div onClick={() => setShowTimerMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
-              <div style={{
-                position: 'absolute', top: 50, left: 0, zIndex: 21,
-                background: C.glassBg, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                border: `1px solid ${C.glassBorder}`, borderRadius: RADIUS.lg,
-                padding: '12px 10px', boxShadow: '0 12px 32px rgba(0,0,0,0.28)', width: 104,
-                animation: `popIn ${MOTION.base} ${MOTION.spring}`, transformOrigin: 'top left',
-              }}>
-                <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, textAlign: 'center' }}>
-                  Start in
-                </p>
-                <TimerWheelPicker
-                  value={settings.startDelay}
-                  onChange={v => onSettingChange({ startDelay: v })}
-                  C={C}
-                />
-              </div>
-            </>
-          )}
         </div>
+
+        {/* Portaled to document.body so it escapes the container's
+            overflow:hidden (needed for fullscreen) instead of being clipped
+            to a sliver under the toolbar. */}
+        {showTimerMenu && typeof document !== 'undefined' && createPortal(
+          <div
+            ref={timerPopoverRef}
+            style={{
+              position: 'fixed', top: timerMenuPos.top, left: timerMenuPos.left, zIndex: 10050,
+              background: C.glassBg, backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
+              border: `1px solid ${C.glassBorder}`, borderRadius: RADIUS.lg,
+              padding: '12px 10px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', width: 104,
+              animation: `popIn ${MOTION.base} ${MOTION.spring}`, transformOrigin: 'top left',
+            }}
+          >
+            <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, textAlign: 'center' }}>
+              Start in
+            </p>
+            <TimerWheelPicker
+              value={settings.startDelay}
+              onChange={v => onSettingChange({ startDelay: v })}
+              C={C}
+            />
+          </div>,
+          document.body
+        )}
 
         <Divider C={C} />
 
-        {/* Elapsed — a watch-complication style chip. Text-only content, so
-            a full pill actually fits it (unlike the Speed block). */}
+        {/* Elapsed — a stacked two-line chip. A full pill was crushing the
+            text against its own curved caps since it holds two differently
+            sized lines, not round/single-line content — a rounded block
+            gives it real breathing room instead. */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          minWidth: 52, padding: '5px 12px', borderRadius: RADIUS.pill,
-          background: C.glassCard, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+          minWidth: 60, padding: '7px 16px', borderRadius: RADIUS.md,
+          background: glassSheen(C.glassCard), backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
           border: `1px solid ${C.border}`,
           transition: `background ${MOTION.base} ${MOTION.out}, border-color ${MOTION.base} ${MOTION.out}`,
         }}>
@@ -634,7 +673,7 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
             round/text-only content. */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-          borderRadius: RADIUS.lg, background: C.glassCard, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+          borderRadius: RADIUS.lg, background: glassSheen(C.glassCard), backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
           border: `1px solid ${C.border}`,
         }}>
           <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
@@ -657,7 +696,7 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
             disabled={isEnhancing || !text.trim()}
             title={enhancedText ? 'Toggle full script / Ai Simplify view' : 'Simplify script with Ai'}
             style={{
-              background: viewMode === 'bullets' && enhancedText ? C.accent : C.glassCard,
+              background: viewMode === 'bullets' && enhancedText ? C.accentGradient : glassSheen(C.glassCard),
               backdropFilter: viewMode === 'bullets' && enhancedText ? undefined : GLASS_BLUR,
               WebkitBackdropFilter: viewMode === 'bullets' && enhancedText ? undefined : GLASS_BLUR,
               border: `1px solid ${viewMode === 'bullets' && enhancedText ? C.accentDim : C.border}`,
@@ -930,7 +969,7 @@ function ToolBtn({ children, onClick, title, C, active, size = 34 }: {
       onClick={onClick}
       title={title}
       style={{
-        width: size, height: size, background: active ? C.accentBg : C.glassCard,
+        width: size, height: size, background: active ? C.accentBg : glassSheen(C.glassCard),
         backdropFilter: active ? undefined : GLASS_BLUR, WebkitBackdropFilter: active ? undefined : GLASS_BLUR,
         border: `1px solid ${active ? C.accentDim : C.border}`,
         color: active ? C.accent : C.textPrimary, borderRadius: '50%', cursor: 'pointer',
@@ -939,7 +978,7 @@ function ToolBtn({ children, onClick, title, C, active, size = 34 }: {
         boxShadow: C.btnShadow, flexShrink: 0,
       }}
       onMouseEnter={e => (e.currentTarget.style.background = C.bgHover)}
-      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : C.glassCard; e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : glassSheen(C.glassCard); e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
       onMouseDown={e => { e.currentTarget.style.boxShadow = C.btnShadowActive; e.currentTarget.style.transform = 'scale(0.92)' }}
       onMouseUp={e => { e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
     >

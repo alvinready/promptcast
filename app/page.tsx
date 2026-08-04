@@ -10,7 +10,7 @@ import {
   Script, loadScripts, saveScripts, createScript, updateScript, deleteScript,
 } from '@/lib/storage'
 import { useTeleprompterSettings } from '@/lib/useSettings'
-import { getColors, RADIUS, MOTION, GLASS_BLUR } from '@/lib/theme'
+import { getColors, RADIUS, MOTION, GLASS_BLUR, glassSheen } from '@/lib/theme'
 import { estimateReadTime } from '@/lib/readTime'
 
 export default function Home() {
@@ -132,24 +132,24 @@ export default function Home() {
         {/* Header — glass panel, distinctly lighter than the near-black app field */}
         <header style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 14px', height: 56, background: C.glassBg,
+          padding: '0 20px', height: 64, background: glassSheen(C.glassBg),
           backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
-          borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
+          borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
             {/* Sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(o => !o)}
               title={sidebarOpen ? 'Close sidebar (⌘B)' : 'Open sidebar (⌘B)'}
               style={{
-                width: 36, height: 36, background: sidebarOpen ? C.accentBg : 'none',
+                width: 40, height: 40, background: sidebarOpen ? C.accentBg : 'none',
                 border: sidebarOpen ? `1px solid ${C.accentDim}` : `1px solid transparent`,
                 borderRadius: '50%', color: sidebarOpen ? C.accent : C.textMuted,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: `all ${MOTION.fast} ${MOTION.out}`, flexShrink: 0,
               }}
             >
-              <svg width="16" height="13" viewBox="0 0 16 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg width="17" height="14" viewBox="0 0 16 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <line x1="0" y1="1.5" x2="16" y2="1.5" />
                 <line x1="0" y1="6.5" x2="16" y2="6.5" />
                 <line x1="0" y1="11.5" x2="16" y2="11.5" />
@@ -157,15 +157,15 @@ export default function Home() {
             </button>
 
             {/* Logo mark + wordmark */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
               <div style={{
-                width: 26, height: 26, borderRadius: RADIUS.sm, background: C.accent,
+                width: 30, height: 30, borderRadius: RADIUS.sm, background: C.accentGradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 boxShadow: C.btnShadowAccent,
               }}>
-                <svg width="12" height="12" viewBox="0 0 18 18" fill={C.accentText}><polygon points="5,2 16,9 5,16" /></svg>
+                <svg width="13" height="13" viewBox="0 0 18 18" fill={C.accentText}><polygon points="5,2 16,9 5,16" /></svg>
               </div>
-              <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.2px' }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.2px' }}>
                 AiPrompter
               </span>
             </div>
@@ -174,7 +174,7 @@ export default function Home() {
             {activeScript && (
               <span style={{
                 fontSize: 12, color: C.textMuted, borderLeft: `1px solid ${C.border}`,
-                paddingLeft: 12, marginLeft: 2,
+                paddingLeft: 14, marginLeft: 4,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 minWidth: 0, flex: 1,
               }}>
@@ -184,7 +184,7 @@ export default function Home() {
           </div>
 
           {/* Header actions */}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0 }}>
             {/* Status — read time + mirror indicators, moved up from the
                 teleprompter toolbar so everything fits in one header row */}
             <div className="header-status" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -195,7 +195,7 @@ export default function Home() {
               {settings.mirrorV && <Badge C={C}>Mirror V</Badge>}
             </div>
 
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <HeaderBtn onClick={handleNew} title="⌘N" C={C}>New</HeaderBtn>
               <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
               {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
@@ -286,7 +286,7 @@ function HeaderIconBtn({ children, onClick, title, C }: {
       onClick={onClick}
       title={title}
       style={{
-        width: 36, height: 36, background: C.glassCard,
+        width: 40, height: 40, background: glassSheen(C.glassCard),
         backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
         border: `1px solid ${C.border}`,
         color: C.textPrimary, borderRadius: '50%', cursor: 'pointer',
@@ -312,12 +312,12 @@ function HeaderBtn({ children, onClick, accent, title, C }: {
       onClick={onClick}
       title={title}
       style={{
-        background: accent ? C.accent : C.glassCard,
+        background: accent ? C.accentGradient : glassSheen(C.glassCard),
         backdropFilter: accent ? undefined : GLASS_BLUR, WebkitBackdropFilter: accent ? undefined : GLASS_BLUR,
         border: `1px solid ${accent ? C.accentDim : C.border}`,
         color: accent ? C.accentText : C.textPrimary,
-        padding: '8px 16px', borderRadius: RADIUS.pill, cursor: 'pointer',
-        fontSize: 12, fontFamily: 'inherit', fontWeight: accent ? 700 : 500,
+        padding: '10px 20px', borderRadius: RADIUS.pill, cursor: 'pointer',
+        fontSize: 13, fontFamily: 'inherit', fontWeight: accent ? 700 : 500,
         transition: `all ${MOTION.fast} ${MOTION.out}`,
         boxShadow: accent ? C.btnShadowAccent : C.btnShadow,
         whiteSpace: 'nowrap',

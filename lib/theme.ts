@@ -33,21 +33,24 @@ export interface Colors {
   glassBorder: string
   /** Translucent card surface for buttons/chips that sit on top of a glass panel */
   glassCard: string
+  /** Diagonal blue-to-deep-blue gradient for filled accent surfaces (play button, primary actions) */
+  accentGradient: string
 }
 
-// Two clearly separated dark tones — a true near-black app field and a
-// distinctly lighter ash-charcoal for panels, with an even lighter gray for
-// cards/chips on top of that — so surfaces actually read as layered instead
-// of blurring into each other. One bright, saturated blue (Facebook/Shazam
-// territory, not indigo) carries every primary action.
+// A true, straight black app field with clearly separated ash/medium-gray
+// glass surfaces on top of it — pushed further apart than before so the
+// layering is unmistakable at a glance instead of reading as one dark blob.
+// One bright, saturated blue (Facebook/Shazam territory, not indigo) carries
+// every primary action, paired with the gray as a diagonal gradient to give
+// filled buttons and glass surfaces a subtle "glare" instead of flat color.
 const DARK: Colors = {
-  bgApp: '#050506',
-  bgPanel: '#18181D',
-  bgCard: '#28282F',
-  bgInput: '#1D1D23',
-  bgHover: '#34343D',
-  border: '#3E3E49',
-  borderStrong: '#52525F',
+  bgApp: '#000000',
+  bgPanel: '#202027',
+  bgCard: '#34343E',
+  bgInput: '#242429',
+  bgHover: '#40404B',
+  border: '#48484F',
+  borderStrong: '#606069',
   textPrimary: '#F8F8FA',
   textSecondary: '#B0B0BC',
   textMuted: '#7C7C89',
@@ -68,9 +71,10 @@ const DARK: Colors = {
   btnShadow: '0 2px 6px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
   btnShadowActive: 'inset 0 2px 4px rgba(0,0,0,0.5)',
   btnShadowAccent: '0 4px 18px rgba(45,136,255,0.45), 0 1px 3px rgba(0,0,0,0.45)',
-  glassBg: 'rgba(24,24,29,0.66)',
-  glassBorder: 'rgba(255,255,255,0.1)',
-  glassCard: 'rgba(46,46,54,0.62)',
+  glassBg: 'rgba(32,32,39,0.80)',
+  glassBorder: 'rgba(255,255,255,0.11)',
+  glassCard: 'rgba(56,56,66,0.74)',
+  accentGradient: 'linear-gradient(150deg, #4DA3FF 0%, #2D88FF 55%, #1A5FC4 100%)',
 }
 
 const LIGHT: Colors = {
@@ -104,6 +108,7 @@ const LIGHT: Colors = {
   glassBg: 'rgba(255,255,255,0.66)',
   glassBorder: 'rgba(20,20,40,0.09)',
   glassCard: 'rgba(255,255,255,0.55)',
+  accentGradient: 'linear-gradient(150deg, #4A96F5 0%, #1877F2 55%, #0F5FD1 100%)',
 }
 
 export function getColors(theme: ColorTheme): Colors {
@@ -130,3 +135,11 @@ export const MOTION = {
 
 // Standard blur amount for glass sections — one place to tune it everywhere.
 export const GLASS_BLUR = 'blur(22px) saturate(1.4)'
+
+// Layers a soft diagonal light streak over a base surface color, producing
+// the "glass glare" look on buttons, chips, and panels — a highlight that
+// sits above the true base color/gradient passed in, so the result still
+// reads as glass rather than a plain color swap.
+export function glassSheen(base: string): string {
+  return `linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 42%, rgba(255,255,255,0.05) 100%), ${base}`
+}

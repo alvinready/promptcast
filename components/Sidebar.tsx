@@ -2,7 +2,7 @@
 
 import { Script } from '@/lib/storage'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors, RADIUS, MOTION, GLASS_BLUR } from '@/lib/theme'
+import { getColors, RADIUS, MOTION, GLASS_BLUR, glassSheen } from '@/lib/theme'
 import { useState, useEffect, useRef } from 'react'
 
 // Small consistent line-icon set — replaces the emoji that used to stand in
@@ -17,6 +17,12 @@ const IconSliders = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
     <line x1="2" y1="2" x2="2" y2="12" /><line x1="7" y1="2" x2="7" y2="12" /><line x1="12" y1="2" x2="12" y2="12" />
     <circle cx="2" cy="5" r="1.6" fill="currentColor" stroke="none" /><circle cx="7" cy="9" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="4" r="1.6" fill="currentColor" stroke="none" />
+  </svg>
+)
+const IconCopy = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4.5" y="4.5" width="8" height="8" rx="1.5" />
+    <path d="M2.5 9.5V2.5a1 1 0 0 1 1-1h7" />
   </svg>
 )
 const IconFolder = () => (
@@ -66,8 +72,12 @@ export default function Sidebar({
   return (
     <aside style={{
       width: 272,
-      background: C.bgPanel,
-      borderRight: `1px solid ${C.border}`,
+      margin: 10,
+      background: glassSheen(C.glassBg),
+      backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+      border: `1px solid ${C.glassBorder}`,
+      borderRadius: RADIUS.xl,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
@@ -76,7 +86,7 @@ export default function Sidebar({
       {/* Header with segmented tab control + close button */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '12px 12px 10px',
-        borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+        borderBottom: `1px solid ${C.glassBorder}`, flexShrink: 0,
       }}>
         <div style={{
           flex: 1, display: 'flex', gap: 2, padding: 3, borderRadius: RADIUS.pill,
@@ -85,7 +95,7 @@ export default function Sidebar({
           {(['scripts', 'settings'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: '7px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              background: tab === t ? C.accent : 'transparent', border: 'none',
+              background: tab === t ? C.accentGradient : 'transparent', border: 'none',
               color: tab === t ? C.accentText : C.textMuted, cursor: 'pointer',
               fontSize: 11, fontWeight: 600, letterSpacing: '0.3px',
               borderRadius: RADIUS.pill,
@@ -125,7 +135,14 @@ export default function Sidebar({
           onImport={onImport} onGoogleDrive={onGoogleDrive}
         />
       ) : (
-        <SettingsTab settings={settings} onChange={onSettingChange} C={C} />
+        // Keyed on theme: forces a full remount on dark/light toggle so the
+        // glass backdrop-filter on this panel's Sections always repaints
+        // fresh. Without it, browsers sometimes keep a stale blurred-dark
+        // compositing layer under the new theme's translucent color until
+        // something else forces a reflow — which showed up as a dark
+        // shadow-like overlay on these sliders that only cleared when
+        // switching tabs away and back (itself an unmount/remount).
+        <SettingsTab key={settings.theme} settings={settings} onChange={onSettingChange} C={C} />
       )}
     </aside>
   )
@@ -223,59 +240,73 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
               key={s.id}
               onClick={() => { setPendingDelete(null); onSelect(s.id) }}
               style={{
-                background: isPending ? C.dangerBg : isActive ? C.accentBg : C.bgCard,
+                background: isPending ? C.dangerBg : isActive ? C.accentBg : glassSheen(C.glassCard),
+                backdropFilter: isPending || isActive ? undefined : GLASS_BLUR,
+                WebkitBackdropFilter: isPending || isActive ? undefined : GLASS_BLUR,
                 border: `1px solid ${isPending ? C.danger : isActive ? C.accent : C.border}`,
-                borderRadius: RADIUS.md, marginBottom: 8, cursor: 'pointer',
+                borderRadius: RADIUS.sm, marginBottom: 8, cursor: 'pointer',
                 transition: `all ${MOTION.base} ${MOTION.out}`, overflow: 'hidden',
                 boxShadow: isActive ? `0 0 0 2px ${C.accent}22` : 'none',
               }}
             >
-              {/* Card body */}
-              <div style={{ padding: '9px 11px 7px' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, marginBottom: 3, lineHeight: 1.35 }}>
-                  {s.title}
-                </p>
-                {isPending ? (
-                  <p style={{ fontSize: 10, color: C.dangerText, fontWeight: 500 }}>Tap TRASH again to confirm · auto-cancels</p>
-                ) : (
-                  <p style={{ fontSize: 10, color: C.textMuted }}>
-                    {wc.toLocaleString()} words{rt ? ` · ${rt}` : ''}
+              {/* Card body + duplicate rail */}
+              <div style={{ display: 'flex' }}>
+                <div style={{ flex: 1, minWidth: 0, padding: '10px 11px 8px' }}>
+                  <p style={{
+                    fontSize: 13, fontWeight: 600, color: C.textPrimary, marginBottom: 3, lineHeight: 1.35,
+                    overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
+                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                  }}>
+                    {s.title}
                   </p>
+                  {isPending ? (
+                    <p style={{ fontSize: 10, color: C.dangerText, fontWeight: 500 }}>Tap TRASH again to confirm · auto-cancels</p>
+                  ) : (
+                    <p style={{ fontSize: 10, color: C.textMuted }}>
+                      {wc.toLocaleString()} words{rt ? ` · ${rt}` : ''}
+                    </p>
+                  )}
+                </div>
+                {/* Duplicate — a side rail, separate from the Edit/Trash row below */}
+                {!isPending && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setPendingDelete(null); onDuplicate(s.id) }}
+                    title="Duplicate"
+                    style={{
+                      width: 34, flexShrink: 0, background: 'none',
+                      border: 'none', borderLeft: `1px solid ${isActive ? C.accent : C.border}`,
+                      color: C.textMuted, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: `color ${MOTION.fast} ${MOTION.out}`,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = C.accent)}
+                    onMouseLeave={e => (e.currentTarget.style.color = C.textMuted)}
+                  >
+                    <IconCopy />
+                  </button>
                 )}
               </div>
 
-              {/* Action row at bottom */}
+              {/* Edit / Trash row along the bottom */}
               <div
                 onClick={e => e.stopPropagation()}
                 style={{
-                  display: 'flex', borderTop: `1px solid ${isPending ? C.danger : C.border}`,
+                  display: 'flex', borderTop: `1px solid ${isPending ? C.danger : isActive ? C.accent : C.border}`,
                   background: isPending ? `${C.dangerBg}` : C.bgApp,
                 }}
               >
-                {/* EDIT */}
                 <CardBtn
                   onClick={e => { e.stopPropagation(); setPendingDelete(null); onEdit(s.id) }}
-                  flex={3}
+                  flex={1}
                   C={C}
                   color={C.accent}
                 >
                   EDIT
                 </CardBtn>
                 <div style={{ width: 1, background: isPending ? C.danger : C.border }} />
-                {/* DUP */}
-                <CardBtn
-                  onClick={e => { e.stopPropagation(); setPendingDelete(null); onDuplicate(s.id) }}
-                  flex={2.5}
-                  C={C}
-                  color={C.textSecondary}
-                >
-                  DUP
-                </CardBtn>
-                <div style={{ width: 1, background: isPending ? C.danger : C.border }} />
-                {/* TRASH */}
                 <CardBtn
                   onClick={e => requestDelete(s.id, e)}
-                  flex={2}
+                  flex={1}
                   C={C}
                   color={isPending ? C.dangerText : C.textMuted}
                   danger={isPending}
@@ -291,7 +322,7 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
       {/* New Script */}
       <div style={{ padding: '10px', borderTop: `1px solid ${C.border}` }}>
         <button onClick={onNew} style={{
-          width: '100%', background: C.accent, border: 'none',
+          width: '100%', background: C.accentGradient, border: 'none',
           color: C.accentText, padding: '11px', borderRadius: RADIUS.pill, cursor: 'pointer',
           fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
           boxShadow: C.btnShadowAccent, transition: `all ${MOTION.fast} ${MOTION.out}`,
@@ -455,7 +486,7 @@ function SettingsTab({ settings, onChange, C }: {
 function Section({ label, children, C }: { label: string, children: React.ReactNode, C: ReturnType<typeof getColors> }) {
   return (
     <div style={{
-      marginBottom: 14, borderRadius: RADIUS.lg, background: C.glassCard,
+      marginBottom: 14, borderRadius: RADIUS.lg, background: glassSheen(C.glassCard),
       backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
       border: `1px solid ${C.border}`, padding: '12px 14px',
     }}>
