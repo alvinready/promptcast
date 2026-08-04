@@ -1,30 +1,25 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { TeleprompterSettings } from '@/lib/useSettings'
 import { getColors } from '@/lib/theme'
+
+export interface TeleprompterHandle {
+  toggleFullscreen: () => void
+}
 
 interface TeleprompterProps {
   text: string
   settings: TeleprompterSettings
   onSettingChange: (patch: Partial<TeleprompterSettings>) => void
+  /** Reports fullscreen state so a parent-level button can reflect it */
+  onFullscreenChange?: (isFullscreen: boolean) => void
 }
 
 function formatElapsed(secs: number): string {
   const m = Math.floor(secs / 60)
   const s = secs % 60
   return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-function estimateReadTime(text: string, speed: number): string {
-  const words = text.split(/\s+/).filter(Boolean).length
-  if (words === 0) return ''
-  const wpm = Math.round(140 * speed)
-  const totalSecs = Math.round((words / wpm) * 60)
-  if (totalSecs < 60) return `~${totalSecs}s`
-  const m = Math.floor(totalSecs / 60)
-  const s = totalSecs % 60
-  return s === 0 ? `~${m}m` : `~${m}m ${s}s`
 }
 
 // Splits raw script text into paragraphs, tracking how many *extra* blank
@@ -150,12 +145,12 @@ const IconPause = () => (
     <rect x="10.5" y="2" width="4.5" height="14" rx="1.5" />
   </svg>
 )
-const IconFullscreen = () => (
+export const IconFullscreen = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
     <path d="M1 5V2h3M10 2h3v3M14 10v3h-3M5 13H2v-3" />
   </svg>
 )
-const IconClose = () => (
+export const IconClose = () => (
   <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <line x1="1" y1="1" x2="12" y2="12" />
     <line x1="12" y1="1" x2="1" y2="12" />
@@ -177,7 +172,9 @@ const IconTimer = () => (
   </svg>
 )
 
-export default function Teleprompter({ text, settings, onSettingChange }: TeleprompterProps) {
+const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function Teleprompter(
+  { text, settings, onSettingChange, onFullscreenChange }, ref
+) {
   const C = getColors(settings.theme)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -333,6 +330,14 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     setIsFullscreen(false)
   }, [])
 
+  // Fullscreen is now toggled from the app header, not this component's own
+  // toolbar — expose it imperatively and report state changes upward.
+  useImperativeHandle(ref, () => ({
+    toggleFullscreen: () => { isFullscreen ? exitFullscreen() : enterFullscreen() },
+  }), [isFullscreen, enterFullscreen, exitFullscreen])
+
+  useEffect(() => { onFullscreenChange?.(isFullscreen) }, [isFullscreen, onFullscreenChange])
+
   // Listen for native fullscreen exit (Esc on desktop) — not triggered on iOS
   // since we never call webkitRequestFullscreen there
   useEffect(() => {
@@ -456,7 +461,6 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
   })()
 
   const paragraphs = splitParagraphs(text)
-  const readTime = estimateReadTime(text, settings.scrollSpeed)
   const promptBg = settings.darkBg ? C.promptBg : C.promptBgAlt
 
   // Button content — animated dots while processing, labels otherwise
@@ -485,6 +489,31 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
         }),
       }}
     >
+      {/* Floating exit button — the app header's fullscreen control is
+          covered by this fixed-position container once fullscreen is
+          active, so an exit affordance has to live in here instead
+          (critical on iOS, where our CSS-only fullscreen has no native
+          Esc/back gesture). */}
+      {isFullscreen && (
+        <button
+          onClick={exitFullscreen}
+          title="Exit fullscreen (F)"
+          style={{
+            position: 'absolute',
+            top: 'calc(env(safe-area-inset-top) + 10px)',
+            right: 'calc(env(safe-area-inset-right) + 10px)',
+            zIndex: 10000,
+            width: 38, height: 38, borderRadius: '50%',
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+            border: `1px solid ${C.border}`, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <IconClose />
+        </button>
+      )}
+
       {/* Toolbar */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
@@ -548,44 +577,17 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
                 <div onClick={() => setShowTimerMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
                 <div style={{
                   position: 'absolute', top: 40, left: 0, zIndex: 21,
-                  background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10,
-                  padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.35)', width: 148,
+                  background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12,
+                  padding: '10px 8px', boxShadow: '0 8px 24px rgba(0,0,0,0.35)', width: 100,
                 }}>
-                  <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-                    Start in…
+                  <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, textAlign: 'center' }}>
+                    Start in
                   </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
-                    <button
-                      onClick={() => { onSettingChange({ startDelay: 0 }); setShowTimerMenu(false) }}
-                      title="No delay"
-                      style={{
-                        gridColumn: 'span 5', padding: '5px 0', borderRadius: 6, cursor: 'pointer',
-                        fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
-                        background: settings.startDelay === 0 ? C.accent : C.bgHover,
-                        color: settings.startDelay === 0 ? C.accentText : C.textSecondary,
-                        border: `1px solid ${settings.startDelay === 0 ? C.accentDim : C.border}`,
-                        marginBottom: 4,
-                      }}
-                    >
-                      Off
-                    </button>
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
-                      <button
-                        key={n}
-                        onClick={() => { onSettingChange({ startDelay: n }); setShowTimerMenu(false) }}
-                        style={{
-                          padding: '6px 0', borderRadius: 6, cursor: 'pointer',
-                          fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
-                          fontVariantNumeric: 'tabular-nums',
-                          background: settings.startDelay === n ? C.accent : C.bgHover,
-                          color: settings.startDelay === n ? C.accentText : C.textSecondary,
-                          border: `1px solid ${settings.startDelay === n ? C.accentDim : C.border}`,
-                        }}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
+                  <TimerWheelPicker
+                    value={settings.startDelay}
+                    onChange={v => onSettingChange({ startDelay: v })}
+                    C={C}
+                  />
                 </div>
               </>
             )}
@@ -608,16 +610,9 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
               ELAPSED
             </span>
           </div>
-
-          <ToolBtn onClick={() => nudge(-1)} title="Scroll up (↑)" C={C}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="6,1 12,10 0,10"/></svg>
-          </ToolBtn>
-          <ToolBtn onClick={() => nudge(1)} title="Scroll down (↓)" C={C}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="6,11 12,2 0,2"/></svg>
-          </ToolBtn>
         </div>
 
-        {/* Speed group — a two-zone wheel: tap top for faster, bottom for slower */}
+        {/* Speed group — drag or scroll the wheel to adjust */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderLeft: `1px solid ${C.border}`, paddingLeft: 10 }}>
           <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
           <span style={{ fontSize: 15, fontWeight: 700, minWidth: 40, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
@@ -660,22 +655,13 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           )}
         </div>
 
-        {/* Status + fullscreen — single group so fullscreen never wraps to its own row */}
+        {/* Status — fullscreen, mirror badges, and the read-time estimate now
+            live in the app header up top, so this stays lightweight */}
         <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center', flexShrink: 0 }}>
-          {elapsed > 0 && readTime && (
-            <span style={{ fontSize: 10, color: C.textFaint, whiteSpace: 'nowrap' }}>{readTime} est.</span>
-          )}
           {viewMode === 'bullets' && (
             <span style={{ fontSize: 10, color: C.accentText, background: C.accent, borderRadius: 6, padding: '3px 7px', fontWeight: 700, letterSpacing: '0.3px' }}>AI</span>
           )}
-          {settings.mirrorH && <Badge C={C}>Mirror H</Badge>}
-          {settings.mirrorV && <Badge C={C}>Mirror V</Badge>}
           {isPlaying && <Badge C={C} active>● LIVE</Badge>}
-          {isFullscreen ? (
-            <ToolBtn onClick={exitFullscreen} title="Exit fullscreen (F)" C={C}><IconClose /></ToolBtn>
-          ) : (
-            <ToolBtn onClick={enterFullscreen} title="Fullscreen (F)" C={C}><IconFullscreen /></ToolBtn>
-          )}
         </div>
       </div>
 
@@ -798,7 +784,9 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       <style>{`@media (pointer: coarse) { .kb-hints { display: none !important; } }`}</style>
     </div>
   )
-}
+})
+
+export default Teleprompter
 
 function ThinkingDots() {
   return (
@@ -901,59 +889,173 @@ function ToolBtn({ children, onClick, title, C, active }: {
   )
 }
 
-// Vertical two-zone "wheel" control for scroll speed: tap the top half to
-// speed up, the bottom half to slow down. Larger tap targets than the old
-// plus/minus buttons, and steps by a fine 0.1× instead of 0.5×.
-function SpeedWheel({ value, onChange, C }: {
+// A scrollable, snapping number picker — like an iOS picker wheel. Scroll or
+// swipe through 0 ("Off") to 10 seconds; whichever value lands in the
+// highlighted center band becomes the selection.
+function TimerWheelPicker({ value, onChange, C }: {
   value: number, onChange: (v: number) => void, C: ReturnType<typeof getColors>
 }) {
-  const MIN = 0.2, MAX = 5, STEP = 0.1
-  const faster = () => onChange(Math.min(MAX, +(value + STEP).toFixed(1)))
-  const slower = () => onChange(Math.max(MIN, +(value - STEP).toFixed(1)))
+  const options = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  const ROW_H = 30
+  const VISIBLE_ROWS = 3
+  const listRef = useRef<HTMLDivElement>(null)
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Scroll to the current value once, when the picker opens
+  useEffect(() => {
+    const idx = Math.max(0, options.indexOf(value))
+    if (listRef.current) listRef.current.scrollTop = idx * ROW_H
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleScroll = () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current)
+    settleTimer.current = setTimeout(() => {
+      const el = listRef.current
+      if (!el) return
+      const idx = Math.min(options.length - 1, Math.max(0, Math.round(el.scrollTop / ROW_H)))
+      el.scrollTo({ top: idx * ROW_H, behavior: 'smooth' })
+      if (options[idx] !== value) onChange(options[idx])
+    }, 100)
+  }
+
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', width: 40, height: 56,
-      borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`,
-      boxShadow: C.btnShadow, flexShrink: 0,
-    }}>
-      <button
-        onClick={faster}
-        disabled={value >= MAX}
-        title="Faster"
+    <div style={{ position: 'relative', height: ROW_H * VISIBLE_ROWS }}>
+      {/* Center selection band */}
+      <div style={{
+        position: 'absolute', top: ROW_H, left: 0, right: 0, height: ROW_H,
+        border: `1px solid ${C.accent}55`, borderRadius: 6,
+        background: `${C.accent}11`, pointerEvents: 'none', zIndex: 1,
+      }} />
+      {/* Fade top/bottom edges */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+        background: `linear-gradient(${C.bgCard}, transparent ${ROW_H}px, transparent ${ROW_H * 2}px, ${C.bgCard})`,
+      }} />
+      <div
+        ref={listRef}
+        onScroll={handleScroll}
         style={{
-          flex: 1, background: C.bgCard, border: 'none',
-          color: value >= MAX ? C.textFaint : C.textPrimary,
-          cursor: value >= MAX ? 'default' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.12s',
-        }}
-        onMouseEnter={e => { if (value < MAX) e.currentTarget.style.background = C.bgHover }}
-        onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
+          height: ROW_H * VISIBLE_ROWS, overflowY: 'auto', scrollSnapType: 'y mandatory',
+          scrollbarWidth: 'none', paddingTop: ROW_H, paddingBottom: ROW_H,
+        } as React.CSSProperties}
       >
-        <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><polygon points="7,0 14,9 0,9" /></svg>
-      </button>
-      <div style={{ height: 1, background: C.border, flexShrink: 0 }} />
-      <button
-        onClick={slower}
-        disabled={value <= MIN}
-        title="Slower"
-        style={{
-          flex: 1, background: C.bgCard, border: 'none',
-          color: value <= MIN ? C.textFaint : C.textPrimary,
-          cursor: value <= MIN ? 'default' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 0.12s',
-        }}
-        onMouseEnter={e => { if (value > MIN) e.currentTarget.style.background = C.bgHover }}
-        onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
-      >
-        <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><polygon points="0,0 14,0 7,9" /></svg>
-      </button>
+        {options.map(n => (
+          <div
+            key={n}
+            onClick={() => {
+              const idx = options.indexOf(n)
+              listRef.current?.scrollTo({ top: idx * ROW_H, behavior: 'smooth' })
+              onChange(n)
+            }}
+            style={{
+              height: ROW_H, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              scrollSnapAlign: 'center', cursor: 'pointer',
+              fontSize: n === value ? 15 : 13, fontWeight: n === value ? 700 : 500,
+              color: n === value ? C.accent : C.textSecondary,
+              fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif',
+              transition: 'color 0.1s, font-size 0.1s',
+            }}
+          >
+            {n === 0 ? 'Off' : `${n}s`}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-function Badge({ children, active, C }: { children: React.ReactNode, active?: boolean, C: ReturnType<typeof getColors> }) {
+// A spinning-dial speed control: drag (or trackpad/mouse-wheel scroll)
+// vertically to change speed continuously, like turning a physical wheel.
+// Swiping up speeds up, swiping down slows down. The moving tick strip and
+// center indicator line give it the feel of an actual dial rather than a
+// pair of buttons.
+function SpeedWheel({ value, onChange, C }: {
+  value: number, onChange: (v: number) => void, C: ReturnType<typeof getColors>
+}) {
+  const MIN = 0.2, MAX = 5, STEP = 0.1
+  const PX_PER_STEP = 9 // drag distance (px) per 0.1× change
+  const TICK_SPACING = 7
+  const dragRef = useRef<{ pointerId: number; startY: number; startValue: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
+
+  const clamp = (v: number) => Math.min(MAX, Math.max(MIN, +v.toFixed(1)))
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { pointerId: e.pointerId, startY: e.clientY, startValue: value }
+    setDragging(true)
+  }
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return
+    const movedUp = dragRef.current.startY - e.clientY // positive when dragging upward
+    const steps = Math.round(movedUp / PX_PER_STEP)
+    const next = clamp(dragRef.current.startValue + steps * STEP)
+    if (next !== value) onChange(next)
+  }
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null
+    setDragging(false)
+  }
+  const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    onChange(clamp(value + (e.deltaY > 0 ? -STEP : STEP)))
+  }
+
+  // Fractional offset so the tick pattern appears to scroll with the value —
+  // reinforces the "spinning wheel" feel while dragging.
+  const tickOffset = ((value / STEP) * TICK_SPACING) % TICK_SPACING
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onWheel={onWheel}
+      title="Drag or scroll to adjust speed"
+      style={{
+        position: 'relative', width: 44, height: 56, borderRadius: 12,
+        overflow: 'hidden', border: `1px solid ${dragging ? C.accentDim : C.border}`,
+        boxShadow: C.btnShadow, flexShrink: 0, background: C.bgCard,
+        cursor: dragging ? 'grabbing' : 'ns-resize', touchAction: 'none', userSelect: 'none',
+      }}
+    >
+      {/* Moving tick strip */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: `repeating-linear-gradient(0deg, ${C.border} 0, ${C.border} 1px, transparent 1px, transparent ${TICK_SPACING}px)`,
+        backgroundPositionY: `${tickOffset}px`,
+        opacity: 0.55,
+      }} />
+      {/* Fade top/bottom edges so ticks appear to emerge/vanish */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: `linear-gradient(${C.bgCard}, transparent 16px, transparent 40px, ${C.bgCard})`,
+      }} />
+      {/* Center indicator line */}
+      <div style={{
+        position: 'absolute', top: '50%', left: 3, right: 3, height: 2, borderRadius: 1,
+        background: C.accent, transform: 'translateY(-50%)', pointerEvents: 'none',
+      }} />
+      {/* Direction hints */}
+      <div style={{
+        position: 'absolute', top: 4, left: 0, right: 0, display: 'flex', justifyContent: 'center',
+        color: C.textFaint, pointerEvents: 'none',
+      }}>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><polygon points="5,0 10,6 0,6" /></svg>
+      </div>
+      <div style={{
+        position: 'absolute', bottom: 4, left: 0, right: 0, display: 'flex', justifyContent: 'center',
+        color: C.textFaint, pointerEvents: 'none',
+      }}>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><polygon points="0,0 10,0 5,6" /></svg>
+      </div>
+    </div>
+  )
+}
+
+export function Badge({ children, active, C }: { children: React.ReactNode, active?: boolean, C: ReturnType<typeof getColors> }) {
   return (
     <span style={{
       padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600,

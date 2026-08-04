@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
-import Teleprompter from '@/components/Teleprompter'
+import Teleprompter, { TeleprompterHandle, IconFullscreen, IconClose, Badge } from '@/components/Teleprompter'
 import EditorModal from '@/components/EditorModal'
 import ImportModal from '@/components/ImportModal'
 import GoogleDriveModal from '@/components/GoogleDriveModal'
@@ -11,6 +11,7 @@ import {
 } from '@/lib/storage'
 import { useTeleprompterSettings } from '@/lib/useSettings'
 import { getColors } from '@/lib/theme'
+import { estimateReadTime } from '@/lib/readTime'
 
 export default function Home() {
   const [scripts, setScripts] = useState<Script[]>([])
@@ -20,6 +21,8 @@ export default function Home() {
   const [showImport, setShowImport] = useState(false)
   const [showDrive, setShowDrive] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const teleprompterRef = useRef<TeleprompterHandle>(null)
   const { settings, update } = useTeleprompterSettings()
   const C = getColors(settings.theme)
 
@@ -37,6 +40,7 @@ export default function Home() {
   }
 
   const activeScript = scripts.find(s => s.id === activeId) ?? null
+  const readTime = activeScript ? estimateReadTime(activeScript.text, settings.scrollSpeed) : ''
 
   const handleNew = () => { setEditorScript(null); setShowEditor(true) }
   const handleEdit = (id: string) => {
@@ -107,6 +111,11 @@ export default function Home() {
             box-shadow: 4px 0 24px rgba(0,0,0,0.5) !important;
           }
         }
+        /* Read-time/mirror status cluster is a nice-to-have — drop it first
+           on narrow screens so New/Import/Edit/Fullscreen always fit */
+        @media (max-width: 640px) {
+          .header-status { display: none !important; }
+        }
       `}</style>
 
       <div style={{
@@ -165,10 +174,29 @@ export default function Home() {
           </div>
 
           {/* Header actions */}
-          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-            <HeaderBtn onClick={handleNew} title="⌘N" C={C}>+ New</HeaderBtn>
-            <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
-            {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+            {/* Status — read time + mirror indicators, moved up from the
+                teleprompter toolbar so everything fits in one header row */}
+            <div className="header-status" style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              {readTime && (
+                <span style={{ fontSize: 10, color: C.textFaint, whiteSpace: 'nowrap' }}>{readTime} est.</span>
+              )}
+              {settings.mirrorH && <Badge C={C}>Mirror H</Badge>}
+              {settings.mirrorV && <Badge C={C}>Mirror V</Badge>}
+            </div>
+
+            <div style={{ display: 'flex', gap: 5 }}>
+              <HeaderBtn onClick={handleNew} title="⌘N" C={C}>+ New</HeaderBtn>
+              <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
+              {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
+              <HeaderIconBtn
+                onClick={() => teleprompterRef.current?.toggleFullscreen()}
+                title={isFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
+                C={C}
+              >
+                {isFullscreen ? <IconClose /> : <IconFullscreen />}
+              </HeaderIconBtn>
+            </div>
           </div>
         </header>
 
@@ -207,7 +235,13 @@ export default function Home() {
 
           {/* Teleprompter area */}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
-            <Teleprompter text={activeScript?.text ?? ''} settings={settings} onSettingChange={update} />
+            <Teleprompter
+              ref={teleprompterRef}
+              text={activeScript?.text ?? ''}
+              settings={settings}
+              onSettingChange={update}
+              onFullscreenChange={setIsFullscreen}
+            />
           </div>
         </div>
       </div>
@@ -231,6 +265,29 @@ export default function Home() {
         />
       )}
     </>
+  )
+}
+
+function HeaderIconBtn({ children, onClick, title, C }: {
+  children: React.ReactNode, onClick: () => void, title?: string, C: ReturnType<typeof getColors>,
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        width: 36, height: 36, background: C.bgCard, border: `1px solid ${C.border}`,
+        color: C.textPrimary, borderRadius: 9, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 0.12s, box-shadow 0.1s',
+        boxShadow: C.btnShadow, flexShrink: 0,
+      }}
+      onMouseDown={e => (e.currentTarget.style.boxShadow = C.btnShadowActive)}
+      onMouseUp={e => (e.currentTarget.style.boxShadow = C.btnShadow)}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = C.btnShadow)}
+    >
+      {children}
+    </button>
   )
 }
 

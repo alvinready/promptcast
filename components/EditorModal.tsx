@@ -39,7 +39,11 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
 
   const handleSave = () => {
     if (!text.trim()) return
-    onSave(title.trim() || 'Untitled', text.trim())
+    // Only the title gets trimmed. Leading/trailing blank lines in the
+    // script are intentional — someone pressing Enter repeatedly at the top
+    // is creating deliberate space before the text starts, and trimming
+    // here used to silently delete that gap.
+    onSave(title.trim() || 'Untitled', text)
   }
 
   const handleClose = () => {
