@@ -15,6 +15,8 @@ export interface TeleprompterSettings {
   lineHeight: number
   padding: number
   theme: ColorTheme
+  /** Countdown (in seconds, 0-10) before playback starts. 0 = off. */
+  startDelay: number
 }
 
 const DEFAULTS: TeleprompterSettings = {
@@ -29,6 +31,7 @@ const DEFAULTS: TeleprompterSettings = {
   lineHeight: 1.9,
   padding: 80,
   theme: 'dark',
+  startDelay: 0,
 }
 
 const STORAGE_KEY = 'promptcast_settings'

@@ -27,6 +27,31 @@ function estimateReadTime(text: string, speed: number): string {
   return s === 0 ? `~${m}m` : `~${m}m ${s}s`
 }
 
+// Splits raw script text into paragraphs, tracking how many *extra* blank
+// lines preceded each one (beyond the single blank line that normally
+// separates paragraphs). This lets someone press Enter several times to
+// deliberately push a section further down the screen — each additional
+// blank line adds proportional vertical space instead of being collapsed
+// away.
+function splitParagraphs(text: string): { text: string; gapBefore: number }[] {
+  const parts = text.split(/(\n{2,})/)
+  const result: { text: string; gapBefore: number }[] = []
+  let pendingGap = 0
+  for (const part of parts) {
+    if (/^\n{2,}$/.test(part)) {
+      // A run of N newlines = N-1 blank lines. One blank line is the normal
+      // paragraph break; anything beyond that is extra intentional spacing.
+      pendingGap = Math.max(0, part.length - 2)
+      continue
+    }
+    const t = part.replace(/\n/g, ' ').trim()
+    if (!t) continue
+    result.push({ text: t, gapBefore: pendingGap })
+    pendingGap = 0
+  }
+  return result
+}
+
 function RichText({ text, color }: { text: string; color: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
   return (
@@ -136,6 +161,21 @@ const IconClose = () => (
     <line x1="12" y1="1" x2="1" y2="12" />
   </svg>
 )
+// Back-to-top: a clear upward arrow, distinct from the play/pause glyphs
+const IconArrowUp = () => (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="7.5" y1="13" x2="7.5" y2="2.5" />
+    <polyline points="3,7 7.5,2.5 12,7" />
+  </svg>
+)
+const IconTimer = () => (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="7.5" cy="8.2" r="5.3" />
+    <line x1="7.5" y1="8.2" x2="7.5" y2="4.8" />
+    <line x1="7.5" y1="8.2" x2="10" y2="9.6" />
+    <line x1="5.5" y1="0.8" x2="9.5" y2="0.8" />
+  </svg>
+)
 
 export default function Teleprompter({ text, settings, onSettingChange }: TeleprompterProps) {
   const C = getColors(settings.theme)
@@ -145,6 +185,8 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showInstallTip, setShowInstallTip] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const [showTimerMenu, setShowTimerMenu] = useState(false)
 
   // Detect PWA standalone mode (no browser chrome, fullscreen is native)
   useEffect(() => {
@@ -175,7 +217,20 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     setEnhancedText(null)
     setEnhanceError(null)
     setViewMode('full')
+    setCountdown(null)
   }, [text])
+
+  // Countdown-before-start ticker
+  useEffect(() => {
+    if (countdown === null) return
+    if (countdown <= 0) {
+      setCountdown(null)
+      setIsPlaying(true)
+      return
+    }
+    const t = setTimeout(() => setCountdown(c => (c !== null ? c - 1 : null)), 1000)
+    return () => clearTimeout(t)
+  }, [countdown])
 
   // Play timer
   useEffect(() => {
@@ -210,20 +265,27 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
   }, [isPlaying, scroll])
 
   const togglePlay = useCallback(() => {
+    // Tapping again while the countdown is running cancels the pending start
+    if (countdown !== null) { setCountdown(null); return }
+    if (isPlaying) { setIsPlaying(false); return }
+
     const sc = scrollRef.current
     const atEnd = sc ? sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 20 : false
-    if (!isPlaying && atEnd) {
+    if (atEnd) {
       // At the end — restart from top then play
       if (sc) sc.scrollTop = 0
       setProgress(0)
       setElapsed(0)
       accumulatorRef.current = 0
     }
-    setIsPlaying(p => !p)
-  }, [isPlaying])
+
+    if (settings.startDelay > 0) setCountdown(settings.startDelay)
+    else setIsPlaying(true)
+  }, [isPlaying, countdown, settings.startDelay])
 
   const reset = useCallback(() => {
     setIsPlaying(false)
+    setCountdown(null)
     setProgress(0)
     setElapsed(0)
     accumulatorRef.current = 0
@@ -377,9 +439,9 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       if (e.code === 'ArrowDown') { e.preventDefault(); nudge(1) }
       if (e.code === 'KeyR') { e.preventDefault(); reset() }
       if (e.code === 'Equal' || e.code === 'NumpadAdd')
-        onSettingChange({ scrollSpeed: Math.min(5, +(settings.scrollSpeed + 0.5).toFixed(1)) })
+        onSettingChange({ scrollSpeed: Math.min(5, +(settings.scrollSpeed + 0.1).toFixed(1)) })
       if (e.code === 'Minus' || e.code === 'NumpadSubtract')
-        onSettingChange({ scrollSpeed: Math.max(0.2, +(settings.scrollSpeed - 0.5).toFixed(1)) })
+        onSettingChange({ scrollSpeed: Math.max(0.2, +(settings.scrollSpeed - 0.1).toFixed(1)) })
       if (e.code === 'KeyF') { e.preventDefault(); isFullscreen ? exitFullscreen() : enterFullscreen() }
     }
     window.addEventListener('keydown', handler)
@@ -393,7 +455,7 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
     return 'none'
   })()
 
-  const paragraphs = text.split(/\n{2,}/).map(p => p.replace(/\n/g, ' ').trim()).filter(Boolean)
+  const paragraphs = splitParagraphs(text)
   const readTime = estimateReadTime(text, settings.scrollSpeed)
   const promptBg = settings.darkBg ? C.promptBg : C.promptBgAlt
 
@@ -432,22 +494,18 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
       }}>
         {/* Playback group */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* Restart button */}
-          <ToolBtn onClick={reset} title="Restart from beginning (R)" C={C}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="2.5" y1="1.5" x2="2.5" y2="13.5" />
-              <polyline points="0,4 2.5,1.5 5,4" />
-              <path d="M5.5 4 A5 5 0 1 1 2.5 8.5" />
-            </svg>
+          {/* Back to top */}
+          <ToolBtn onClick={reset} title="Back to top (R)" C={C}>
+            <IconArrowUp />
           </ToolBtn>
 
           {/* Play / Pause */}
           <button
             onClick={togglePlay}
-            title="Play/Pause (Space)"
+            title={countdown !== null ? 'Cancel start' : 'Play/Pause (Space)'}
             style={{
               width: 44, height: 44, borderRadius: '50%',
-              background: isPlaying ? C.accentDim : C.accent,
+              background: isPlaying || countdown !== null ? C.accentDim : C.accent,
               border: 'none',
               color: C.accentText,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -455,13 +513,83 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
               boxShadow: C.btnShadowAccent,
               transition: 'background 0.15s, box-shadow 0.1s',
               flexShrink: 0,
+              fontSize: 17, fontWeight: 700, fontFamily: 'system-ui, sans-serif',
             }}
             onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
             onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            {isPlaying ? <IconPause /> : <IconPlay />}
+            {countdown !== null ? countdown : isPlaying ? <IconPause /> : <IconPlay />}
           </button>
+
+          {/* Start timer */}
+          <div style={{ position: 'relative' }}>
+            <ToolBtn
+              onClick={() => setShowTimerMenu(v => !v)}
+              title="Start delay"
+              C={C}
+              active={settings.startDelay > 0}
+            >
+              <IconTimer />
+            </ToolBtn>
+            {settings.startDelay > 0 && (
+              <span style={{
+                position: 'absolute', top: -4, right: -4, minWidth: 15, height: 15,
+                borderRadius: 8, background: C.accent, color: C.accentText,
+                fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', padding: '0 3px', fontFamily: 'system-ui, sans-serif',
+                pointerEvents: 'none',
+              }}>
+                {settings.startDelay}
+              </span>
+            )}
+            {showTimerMenu && (
+              <>
+                <div onClick={() => setShowTimerMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+                <div style={{
+                  position: 'absolute', top: 40, left: 0, zIndex: 21,
+                  background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10,
+                  padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.35)', width: 148,
+                }}>
+                  <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                    Start in…
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+                    <button
+                      onClick={() => { onSettingChange({ startDelay: 0 }); setShowTimerMenu(false) }}
+                      title="No delay"
+                      style={{
+                        gridColumn: 'span 5', padding: '5px 0', borderRadius: 6, cursor: 'pointer',
+                        fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                        background: settings.startDelay === 0 ? C.accent : C.bgHover,
+                        color: settings.startDelay === 0 ? C.accentText : C.textSecondary,
+                        border: `1px solid ${settings.startDelay === 0 ? C.accentDim : C.border}`,
+                        marginBottom: 4,
+                      }}
+                    >
+                      Off
+                    </button>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+                      <button
+                        key={n}
+                        onClick={() => { onSettingChange({ startDelay: n }); setShowTimerMenu(false) }}
+                        style={{
+                          padding: '6px 0', borderRadius: 6, cursor: 'pointer',
+                          fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                          fontVariantNumeric: 'tabular-nums',
+                          background: settings.startDelay === n ? C.accent : C.bgHover,
+                          color: settings.startDelay === n ? C.accentText : C.textSecondary,
+                          border: `1px solid ${settings.startDelay === n ? C.accentDim : C.border}`,
+                        }}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Timer */}
           <div style={{
@@ -489,22 +617,16 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           </ToolBtn>
         </div>
 
-        {/* Speed group */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, borderLeft: `1px solid ${C.border}`, paddingLeft: 10 }}>
+        {/* Speed group — a two-zone wheel: tap top for faster, bottom for slower */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderLeft: `1px solid ${C.border}`, paddingLeft: 10 }}>
           <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
-          <ToolBtn onClick={() => onSettingChange({ scrollSpeed: Math.max(0.2, +(settings.scrollSpeed - 0.5).toFixed(1)) })} C={C}>
-            <svg width="10" height="2" viewBox="0 0 10 2"><rect width="10" height="2" rx="1" fill="currentColor"/></svg>
-          </ToolBtn>
-          <span style={{ fontSize: 13, fontWeight: 600, minWidth: 38, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, minWidth: 40, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
             {settings.scrollSpeed.toFixed(1)}×
           </span>
-          <ToolBtn onClick={() => onSettingChange({ scrollSpeed: Math.min(5, +(settings.scrollSpeed + 0.5).toFixed(1)) })} C={C}>
-            <svg width="10" height="10" viewBox="0 0 10 10"><rect x="4" y="0" width="2" height="10" rx="1" fill="currentColor"/><rect x="0" y="4" width="10" height="2" rx="1" fill="currentColor"/></svg>
-          </ToolBtn>
-          <input
-            type="range" min="0.2" max="5" step="0.1" value={settings.scrollSpeed}
-            onChange={e => onSettingChange({ scrollSpeed: Number(e.target.value) })}
-            style={{ width: 70, accentColor: C.accent, cursor: 'pointer' }}
+          <SpeedWheel
+            value={settings.scrollSpeed}
+            onChange={v => onSettingChange({ scrollSpeed: v })}
+            C={C}
           />
         </div>
 
@@ -629,7 +751,17 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
               }}>
                 {paragraphs.length > 0 ? (
                   paragraphs.map((p, i) => (
-                    <p key={i} style={{ marginBottom: '0.85em' }}>{p}</p>
+                    <p
+                      key={i}
+                      style={{
+                        marginBottom: '0.85em',
+                        // Extra Enter presses in the editor push this paragraph
+                        // further down the screen instead of being collapsed.
+                        marginTop: p.gapBefore > 0 ? `${p.gapBefore * 1.4}em` : 0,
+                      }}
+                    >
+                      {p.text}
+                    </p>
                   ))
                 ) : (
                   <p style={{ color: C.textMuted, textAlign: 'center', fontSize: 18, marginTop: 60 }}>
@@ -641,7 +773,8 @@ export default function Teleprompter({ text, settings, onSettingChange }: Telepr
           </div>
         </div>
 
-        {paragraphs.length > 0 && <TapHint isPlaying={isPlaying} atStart={progress < 0.02} C={C} />}
+        {paragraphs.length > 0 && countdown === null && <TapHint isPlaying={isPlaying} atStart={progress < 0.02} C={C} />}
+        {countdown !== null && <CountdownOverlay seconds={countdown} C={C} />}
 
         {/* Progress bar */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: C.bgCard, pointerEvents: 'none' }}>
@@ -721,27 +854,102 @@ function TapHint({ isPlaying, atStart, C }: { isPlaying: boolean; atStart: boole
   )
 }
 
-function ToolBtn({ children, onClick, title, C }: {
-  children: React.ReactNode, onClick: () => void, title?: string, C: ReturnType<typeof getColors>
+function CountdownOverlay({ seconds, C }: { seconds: number, C: ReturnType<typeof getColors> }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      pointerEvents: 'none', zIndex: 9, background: 'rgba(0,0,0,0.35)',
+    }}>
+      <div key={seconds} style={{
+        width: 120, height: 120, borderRadius: '50%',
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+        border: `2px solid ${C.accent}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: C.accent, fontSize: 56, fontWeight: 700,
+        fontFamily: 'system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',
+        animation: 'countdownPulse 1s ease-out',
+      }}>
+        {seconds}
+      </div>
+      <style>{`@keyframes countdownPulse { 0% { transform: scale(1.3); opacity: 0.4; } 100% { transform: scale(1); opacity: 1; } }`}</style>
+    </div>
+  )
+}
+
+function ToolBtn({ children, onClick, title, C, active }: {
+  children: React.ReactNode, onClick: () => void, title?: string, C: ReturnType<typeof getColors>, active?: boolean
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
       style={{
-        width: 34, height: 34, background: C.bgCard, border: `1px solid ${C.border}`,
-        color: C.textPrimary, borderRadius: 9, cursor: 'pointer',
+        width: 34, height: 34, background: active ? C.accentBg : C.bgCard,
+        border: `1px solid ${active ? C.accentDim : C.border}`,
+        color: active ? C.accent : C.textPrimary, borderRadius: 9, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'background 0.12s, box-shadow 0.1s',
         boxShadow: C.btnShadow, flexShrink: 0,
       }}
       onMouseEnter={e => (e.currentTarget.style.background = C.bgHover)}
-      onMouseLeave={e => { e.currentTarget.style.background = C.bgCard; e.currentTarget.style.boxShadow = C.btnShadow }}
+      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : C.bgCard; e.currentTarget.style.boxShadow = C.btnShadow }}
       onMouseDown={e => (e.currentTarget.style.boxShadow = C.btnShadowActive)}
       onMouseUp={e => (e.currentTarget.style.boxShadow = C.btnShadow)}
     >
       {children}
     </button>
+  )
+}
+
+// Vertical two-zone "wheel" control for scroll speed: tap the top half to
+// speed up, the bottom half to slow down. Larger tap targets than the old
+// plus/minus buttons, and steps by a fine 0.1× instead of 0.5×.
+function SpeedWheel({ value, onChange, C }: {
+  value: number, onChange: (v: number) => void, C: ReturnType<typeof getColors>
+}) {
+  const MIN = 0.2, MAX = 5, STEP = 0.1
+  const faster = () => onChange(Math.min(MAX, +(value + STEP).toFixed(1)))
+  const slower = () => onChange(Math.max(MIN, +(value - STEP).toFixed(1)))
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', width: 40, height: 56,
+      borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`,
+      boxShadow: C.btnShadow, flexShrink: 0,
+    }}>
+      <button
+        onClick={faster}
+        disabled={value >= MAX}
+        title="Faster"
+        style={{
+          flex: 1, background: C.bgCard, border: 'none',
+          color: value >= MAX ? C.textFaint : C.textPrimary,
+          cursor: value >= MAX ? 'default' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'background 0.12s',
+        }}
+        onMouseEnter={e => { if (value < MAX) e.currentTarget.style.background = C.bgHover }}
+        onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
+      >
+        <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><polygon points="7,0 14,9 0,9" /></svg>
+      </button>
+      <div style={{ height: 1, background: C.border, flexShrink: 0 }} />
+      <button
+        onClick={slower}
+        disabled={value <= MIN}
+        title="Slower"
+        style={{
+          flex: 1, background: C.bgCard, border: 'none',
+          color: value <= MIN ? C.textFaint : C.textPrimary,
+          cursor: value <= MIN ? 'default' : 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'background 0.12s',
+        }}
+        onMouseEnter={e => { if (value > MIN) e.currentTarget.style.background = C.bgHover }}
+        onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
+      >
+        <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><polygon points="0,0 14,0 7,9" /></svg>
+      </button>
+    </div>
   )
 }
 
