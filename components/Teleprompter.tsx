@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors } from '@/lib/theme'
+import { getColors, RADIUS, MOTION } from '@/lib/theme'
 
 export interface TeleprompterHandle {
   toggleFullscreen: () => void
@@ -540,11 +540,11 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
             boxShadow: C.btnShadowAccent,
-            transition: 'background 0.15s, box-shadow 0.1s',
+            transition: `background ${MOTION.base} ${MOTION.out}, box-shadow ${MOTION.base} ${MOTION.out}, transform ${MOTION.base} ${MOTION.spring}`,
             flexShrink: 0,
             fontSize: 20, fontWeight: 700, fontFamily: 'system-ui, sans-serif',
           }}
-          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.94)')}
+          onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.9)')}
           onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
@@ -579,9 +579,11 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
             <>
               <div onClick={() => setShowTimerMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
               <div style={{
-                position: 'absolute', top: 48, left: 0, zIndex: 21,
-                background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12,
-                padding: '10px 8px', boxShadow: '0 8px 24px rgba(0,0,0,0.35)', width: 100,
+                position: 'absolute', top: 50, left: 0, zIndex: 21,
+                background: C.glassBg, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+                border: `1px solid ${C.glassBorder}`, borderRadius: RADIUS.lg,
+                padding: '12px 10px', boxShadow: '0 12px 32px rgba(0,0,0,0.28)', width: 104,
+                animation: `popIn ${MOTION.base} ${MOTION.spring}`, transformOrigin: 'top left',
               }}>
                 <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, textAlign: 'center' }}>
                   Start in
@@ -598,20 +600,22 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
 
         <Divider C={C} />
 
-        {/* Elapsed */}
+        {/* Elapsed — a watch-complication style chip */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          minWidth: 36,
+          minWidth: 52, padding: '5px 12px', borderRadius: RADIUS.pill,
+          background: C.bgCard, border: `1px solid ${C.border}`,
+          transition: `background ${MOTION.base} ${MOTION.out}, border-color ${MOTION.base} ${MOTION.out}`,
         }}>
           <span style={{
             fontVariantNumeric: 'tabular-nums',
             fontSize: 14, fontWeight: 600, color: isPlaying ? C.accent : C.textPrimary,
-            lineHeight: 1, transition: 'color 0.2s',
+            lineHeight: 1.3, transition: `color ${MOTION.base} ${MOTION.out}`,
             fontFamily: 'system-ui, sans-serif',
           }}>
             {formatElapsed(elapsed)}
           </span>
-          <span style={{ fontSize: 9, color: C.textFaint, letterSpacing: '0.5px', marginTop: 1 }}>
+          <span style={{ fontSize: 8, color: C.textFaint, letterSpacing: '0.6px', marginTop: 1 }}>
             ELAPSED
           </span>
         </div>
@@ -619,7 +623,10 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
         <Divider C={C} />
 
         {/* Speed group — drag or scroll the wheel to adjust */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 14px',
+          borderRadius: RADIUS.pill, background: C.bgCard, border: `1px solid ${C.border}`,
+        }}>
           <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
           <span style={{ fontSize: 15, fontWeight: 700, minWidth: 40, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
             {settings.scrollSpeed.toFixed(1)}×
@@ -643,10 +650,10 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
               background: viewMode === 'bullets' && enhancedText ? C.accent : C.bgCard,
               border: `1px solid ${viewMode === 'bullets' && enhancedText ? C.accentDim : C.border}`,
               color: viewMode === 'bullets' && enhancedText ? C.accentText : C.textPrimary,
-              padding: '7px 16px', borderRadius: 10, cursor: isEnhancing ? 'wait' : 'pointer',
-              fontSize: 17, fontFamily: 'inherit', fontWeight: 600,
+              padding: '9px 18px', borderRadius: RADIUS.pill, cursor: isEnhancing ? 'wait' : 'pointer',
+              fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
               opacity: (!text.trim()) ? 0.4 : 1,
-              transition: 'all 0.15s', whiteSpace: 'nowrap',
+              transition: `all ${MOTION.base} ${MOTION.out}`, whiteSpace: 'nowrap',
               boxShadow: viewMode === 'bullets' && enhancedText ? C.btnShadowAccent : C.btnShadow,
             }}
             onMouseDown={e => (e.currentTarget.style.boxShadow = C.btnShadowActive)}
@@ -657,8 +664,9 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           </button>
           {enhancedText && (
             <button onClick={() => { setEnhancedText(null); setViewMode('full') }} title="Clear AI keywords" style={{
-              background: 'none', border: 'none', color: C.textMuted,
-              cursor: 'pointer', fontSize: 14, padding: '4px', lineHeight: 1, borderRadius: 6,
+              background: C.bgCard, border: `1px solid ${C.border}`, color: C.textMuted,
+              cursor: 'pointer', fontSize: 12, width: 26, height: 26, lineHeight: 1, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>✕</button>
           )}
         </div>
@@ -678,7 +686,7 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
       {/* Install tip — shown once on iOS when entering fullscreen */}
       {showInstallTip && (
         <div style={{
-          background: '#1a1a2e', borderBottom: `1px solid ${C.accent}55`,
+          background: '#121218', borderBottom: `1px solid ${C.accent}55`,
           padding: '10px 16px', display: 'flex', justifyContent: 'space-between',
           alignItems: 'center', gap: 12, flexShrink: 0,
         }}>
@@ -839,8 +847,8 @@ function TapHint({ isPlaying, atStart, C }: { isPlaying: boolean; atStart: boole
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 8 }}>
       <div style={{
-        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
-        borderRadius: 14, padding: '12px 22px',
+        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+        borderRadius: RADIUS.pill, padding: '13px 24px',
         color: `${C.accent}dd`, fontSize: 14, letterSpacing: '0.5px', fontWeight: 500,
         border: `1px solid ${C.accent}33`,
         animation: 'fadeOut 2.5s forwards',
@@ -853,23 +861,38 @@ function TapHint({ isPlaying, atStart, C }: { isPlaying: boolean; atStart: boole
 }
 
 function CountdownOverlay({ seconds, C }: { seconds: number, C: ReturnType<typeof getColors> }) {
+  const R = 58
+  const circumference = 2 * Math.PI * R
   return (
     <div style={{
       position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      pointerEvents: 'none', zIndex: 9, background: 'rgba(0,0,0,0.35)',
+      pointerEvents: 'none', zIndex: 9, background: 'rgba(0,0,0,0.4)',
     }}>
-      <div key={seconds} style={{
-        width: 120, height: 120, borderRadius: '50%',
-        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-        border: `2px solid ${C.accent}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: C.accent, fontSize: 56, fontWeight: 700,
-        fontFamily: 'system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',
-        animation: 'countdownPulse 1s ease-out',
-      }}>
-        {seconds}
+      <div key={seconds} style={{ position: 'relative', width: 132, height: 132, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="132" height="132" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
+          <circle cx="66" cy="66" r={R} fill="none" stroke={C.glassBorder} strokeWidth="4" />
+          <circle
+            cx="66" cy="66" r={R} fill="none" stroke={C.accent} strokeWidth="4" strokeLinecap="round"
+            strokeDasharray={circumference}
+            style={{ animation: 'countdownRing 1s linear forwards' }}
+          />
+        </svg>
+        <div style={{
+          width: 108, height: 108, borderRadius: '50%',
+          background: C.glassBg, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid ${C.glassBorder}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: C.accent, fontSize: 50, fontWeight: 700,
+          fontFamily: 'system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',
+          animation: `countdownPulse ${MOTION.slow} ${MOTION.spring}`,
+        }}>
+          {seconds}
+        </div>
       </div>
-      <style>{`@keyframes countdownPulse { 0% { transform: scale(1.3); opacity: 0.4; } 100% { transform: scale(1); opacity: 1; } }`}</style>
+      <style>{`
+        @keyframes countdownPulse { 0% { transform: scale(1.25); opacity: 0.35; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes countdownRing { from { stroke-dashoffset: 0; } to { stroke-dashoffset: ${circumference}; } }
+      `}</style>
     </div>
   )
 }
@@ -895,15 +918,15 @@ function ToolBtn({ children, onClick, title, C, active, size = 34 }: {
       style={{
         width: size, height: size, background: active ? C.accentBg : C.bgCard,
         border: `1px solid ${active ? C.accentDim : C.border}`,
-        color: active ? C.accent : C.textPrimary, borderRadius: 9, cursor: 'pointer',
+        color: active ? C.accent : C.textPrimary, borderRadius: '50%', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 0.12s, box-shadow 0.1s',
+        transition: `background ${MOTION.fast} ${MOTION.out}, box-shadow ${MOTION.fast} ${MOTION.out}, transform ${MOTION.fast} ${MOTION.spring}`,
         boxShadow: C.btnShadow, flexShrink: 0,
       }}
       onMouseEnter={e => (e.currentTarget.style.background = C.bgHover)}
-      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : C.bgCard; e.currentTarget.style.boxShadow = C.btnShadow }}
-      onMouseDown={e => (e.currentTarget.style.boxShadow = C.btnShadowActive)}
-      onMouseUp={e => (e.currentTarget.style.boxShadow = C.btnShadow)}
+      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : C.bgCard; e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
+      onMouseDown={e => { e.currentTarget.style.boxShadow = C.btnShadowActive; e.currentTarget.style.transform = 'scale(0.92)' }}
+      onMouseUp={e => { e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
     >
       {children}
     </button>
@@ -945,13 +968,13 @@ function TimerWheelPicker({ value, onChange, C }: {
       {/* Center selection band */}
       <div style={{
         position: 'absolute', top: ROW_H, left: 0, right: 0, height: ROW_H,
-        border: `1px solid ${C.accent}55`, borderRadius: 6,
-        background: `${C.accent}11`, pointerEvents: 'none', zIndex: 1,
+        border: `1px solid ${C.accent}55`, borderRadius: RADIUS.sm,
+        background: `${C.accent}15`, pointerEvents: 'none', zIndex: 1,
       }} />
-      {/* Fade top/bottom edges */}
+      {/* Fade top/bottom edges — matches the glass popover behind it */}
       <div style={{
         position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-        background: `linear-gradient(${C.bgCard}, transparent ${ROW_H}px, transparent ${ROW_H * 2}px, ${C.bgCard})`,
+        background: `linear-gradient(${C.glassBg}, transparent ${ROW_H}px, transparent ${ROW_H * 2}px, ${C.glassBg})`,
       }} />
       <div
         ref={listRef}
@@ -1036,10 +1059,11 @@ function SpeedWheel({ value, onChange, C }: {
       onWheel={onWheel}
       title="Drag or scroll to adjust speed"
       style={{
-        position: 'relative', width: 44, height: 56, borderRadius: 12,
+        position: 'relative', width: 44, height: 56, borderRadius: RADIUS.md,
         overflow: 'hidden', border: `1px solid ${dragging ? C.accentDim : C.border}`,
         boxShadow: C.btnShadow, flexShrink: 0, background: C.bgCard,
         cursor: dragging ? 'grabbing' : 'ns-resize', touchAction: 'none', userSelect: 'none',
+        transition: `border-color ${MOTION.fast} ${MOTION.out}`,
       }}
     >
       {/* Moving tick strip */}
@@ -1079,7 +1103,7 @@ function SpeedWheel({ value, onChange, C }: {
 export function Badge({ children, active, C }: { children: React.ReactNode, active?: boolean, C: ReturnType<typeof getColors> }) {
   return (
     <span style={{
-      padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600,
+      padding: '4px 10px', borderRadius: RADIUS.pill, fontSize: 10, fontWeight: 600,
       background: active ? C.accentBg : C.bgCard,
       color: active ? C.accent : C.textMuted,
       border: `1px solid ${active ? C.accentDim : C.border}`,

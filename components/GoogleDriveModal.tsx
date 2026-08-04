@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useGoogleDrive, DriveFile } from '@/lib/useGoogleDrive'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors } from '@/lib/theme'
+import { getColors, RADIUS, MOTION } from '@/lib/theme'
 
 interface GoogleDriveModalProps {
   clientId: string | undefined
@@ -42,7 +42,7 @@ export default function GoogleDriveModal({ clientId, settings, onImport, onClose
       <ModalShell onClose={onClose} title="Google Drive" C={C}>
         <div style={{ padding: 20 }}>
           <div style={{
-            background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10,
+            background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RADIUS.md,
             padding: '16px', fontSize: 13, color: C.textSecondary, lineHeight: 1.7,
           }}>
             <p style={{ color: C.textPrimary, fontWeight: 500, marginBottom: 8 }}>Setup required</p>
@@ -73,9 +73,9 @@ export default function GoogleDriveModal({ clientId, settings, onImport, onClose
             </p>
             <button onClick={signIn} disabled={!isReady} style={{
               background: '#4285f4', border: 'none', color: '#fff',
-              padding: '10px 24px', borderRadius: 8, cursor: 'pointer',
+              padding: '10px 24px', borderRadius: RADIUS.pill, cursor: 'pointer',
               fontSize: 14, fontFamily: 'inherit', fontWeight: 500,
-              opacity: isReady ? 1 : 0.5,
+              opacity: isReady ? 1 : 0.5, transition: `opacity ${MOTION.fast} ${MOTION.out}`,
             }}>
               Sign in with Google
             </button>
@@ -96,15 +96,15 @@ export default function GoogleDriveModal({ clientId, settings, onImport, onClose
               {files.map(f => (
                 <div key={f.id} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8,
+                  background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RADIUS.md,
                   padding: '10px 12px', marginBottom: 6,
                 }}>
                   <p style={{ fontSize: 13, color: C.textPrimary, flex: 1 }}>📝 {f.name}</p>
                   <button onClick={() => importFile(f)} disabled={importing === f.id} style={{
                     background: C.accent, border: 'none', color: C.accentText,
-                    padding: '5px 12px', borderRadius: 6, cursor: 'pointer',
+                    padding: '6px 14px', borderRadius: RADIUS.pill, cursor: 'pointer',
                     fontSize: 12, fontFamily: 'inherit', fontWeight: 500,
-                    opacity: importing === f.id ? 0.5 : 1,
+                    opacity: importing === f.id ? 0.5 : 1, transition: `opacity ${MOTION.fast} ${MOTION.out}`,
                   }}>
                     {importing === f.id ? '…' : 'Import'}
                   </button>
@@ -127,7 +127,7 @@ function TinyBtn({ children, onClick, C }: {
   return (
     <button onClick={onClick} style={{
       background: C.bgCard, border: `1px solid ${C.border}`, color: C.textSecondary,
-      padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
+      padding: '5px 12px', borderRadius: RADIUS.pill, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
     }}>
       {children}
     </button>
@@ -139,19 +139,25 @@ function ModalShell({ children, onClose, title, C }: {
 }) {
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
       zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: C.bgPanel, border: `1px solid ${C.border}`, borderRadius: 16,
+        background: C.bgPanel, border: `1px solid ${C.border}`, borderRadius: RADIUS.xl,
         width: '100%', maxWidth: 480, overflow: 'hidden',
+        animation: `popIn ${MOTION.base} ${MOTION.spring}`,
       }}>
         <div style={{
-          padding: '16px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 500, color: C.textPrimary }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textSecondary, cursor: 'pointer', fontSize: 18 }}>✕</button>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary }}>{title}</h2>
+          <button onClick={onClose} style={{
+            width: 30, height: 30, background: C.bgCard, border: `1px solid ${C.border}`,
+            borderRadius: '50%', color: C.textSecondary, cursor: 'pointer', fontSize: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: `all ${MOTION.fast} ${MOTION.out}`,
+          }}>✕</button>
         </div>
         {children}
       </div>

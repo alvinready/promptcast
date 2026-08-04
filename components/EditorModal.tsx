@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Script } from '@/lib/storage'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors } from '@/lib/theme'
+import { getColors, RADIUS, MOTION } from '@/lib/theme'
 
 interface EditorModalProps {
   script: Script | null
@@ -66,7 +66,7 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
     <div
       onClick={handleClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
         zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
     >
@@ -75,19 +75,23 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
         onKeyDown={handleKeyDown}
         style={{
           background: C.bgPanel, border: `1px solid ${C.border}`,
-          borderRadius: 16, width: '100%', maxWidth: 720,
+          borderRadius: RADIUS.xl, width: '100%', maxWidth: 720,
           maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          animation: `popIn ${MOTION.base} ${MOTION.spring}`,
         }}
       >
         <div style={{
-          padding: '16px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 500, color: C.textPrimary }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary }}>
             {script ? 'Edit Script' : 'New Script'}
           </h2>
           <button onClick={handleClose} style={{
-            background: 'none', border: 'none', color: C.textSecondary, cursor: 'pointer', fontSize: 18, lineHeight: 1,
+            width: 30, height: 30, background: C.bgCard, border: `1px solid ${C.border}`,
+            borderRadius: '50%', color: C.textSecondary, cursor: 'pointer', fontSize: 14, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: `all ${MOTION.fast} ${MOTION.out}`,
           }}>✕</button>
         </div>
 
@@ -101,12 +105,12 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setConfirmDiscard(false)} style={{
                 background: C.bgCard, border: `1px solid ${C.border}`, color: C.textSecondary,
-                padding: '5px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+                padding: '6px 14px', borderRadius: RADIUS.pill, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
                 boxShadow: C.btnShadow,
               }}>Keep editing</button>
               <button onClick={onClose} style={{
                 background: C.dangerBg, border: `1px solid ${C.danger}`, color: C.dangerText,
-                padding: '5px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+                padding: '6px 14px', borderRadius: RADIUS.pill, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
                 boxShadow: C.btnShadow,
               }}>Discard</button>
             </div>
@@ -120,8 +124,8 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
             placeholder="Script title…"
             style={{
               background: C.bgInput, border: `1px solid ${C.border}`, color: C.textPrimary,
-              padding: '8px 12px', borderRadius: 8, fontSize: 15, fontFamily: 'inherit',
-              outline: 'none', width: '100%',
+              padding: '10px 14px', borderRadius: RADIUS.md, fontSize: 15, fontFamily: 'inherit',
+              outline: 'none', width: '100%', transition: `border-color ${MOTION.fast} ${MOTION.out}`,
             }}
             onFocus={e => (e.target.style.borderColor = C.accent)}
             onBlur={e => (e.target.style.borderColor = C.border)}
@@ -133,8 +137,9 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
             placeholder="Paste or type your script here…"
             style={{
               flex: 1, minHeight: 300, background: C.bgInput, border: `1px solid ${C.border}`,
-              color: C.textPrimary, padding: '12px', borderRadius: 8, fontSize: 15,
+              color: C.textPrimary, padding: '14px', borderRadius: RADIUS.md, fontSize: 15,
               fontFamily: 'inherit', resize: 'none', lineHeight: 1.7, outline: 'none',
+              transition: `border-color ${MOTION.fast} ${MOTION.out}`,
             }}
             onFocus={e => (e.target.style.borderColor = C.accent)}
             onBlur={e => (e.target.style.borderColor = C.border)}
@@ -148,21 +153,21 @@ export default function EditorModal({ script, settings, onSave, onClose }: Edito
         </div>
 
         <div style={{
-          padding: '12px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
           display: 'flex', justifyContent: 'flex-end', gap: 8,
         }}>
           <button onClick={handleClose} style={{
             background: C.bgCard, border: `1px solid ${C.border}`, color: C.textSecondary,
-            padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
-            boxShadow: C.btnShadow,
+            padding: '9px 18px', borderRadius: RADIUS.pill, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+            boxShadow: C.btnShadow, transition: `all ${MOTION.fast} ${MOTION.out}`,
           }}>Cancel</button>
           <button onClick={handleSave} disabled={!text.trim()} style={{
             background: text.trim() ? C.accent : C.bgHover,
             border: `1px solid ${text.trim() ? C.accentDim : C.border}`,
             color: text.trim() ? C.accentText : C.textMuted,
-            padding: '8px 20px', borderRadius: 8,
+            padding: '9px 22px', borderRadius: RADIUS.pill,
             cursor: text.trim() ? 'pointer' : 'default',
-            fontSize: 13, fontWeight: 700, fontFamily: 'inherit', transition: 'all 0.15s',
+            fontSize: 13, fontWeight: 700, fontFamily: 'inherit', transition: `all ${MOTION.fast} ${MOTION.out}`,
             boxShadow: text.trim() ? C.btnShadowAccent : 'none',
           }}>Save Script</button>
         </div>

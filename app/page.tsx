@@ -10,7 +10,7 @@ import {
   Script, loadScripts, saveScripts, createScript, updateScript, deleteScript,
 } from '@/lib/storage'
 import { useTeleprompterSettings } from '@/lib/useSettings'
-import { getColors } from '@/lib/theme'
+import { getColors, RADIUS, MOTION } from '@/lib/theme'
 import { estimateReadTime } from '@/lib/readTime'
 
 export default function Home() {
@@ -126,16 +126,16 @@ export default function Home() {
         paddingRight: 'env(safe-area-inset-right)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         background: C.bgApp, color: C.textPrimary,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
         overflow: 'hidden',
       }}>
         {/* Header */}
         <header style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 12px', height: 50, background: C.bgPanel,
+          padding: '0 14px', height: 56, background: C.bgPanel,
           borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
             {/* Sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(o => !o)}
@@ -143,9 +143,9 @@ export default function Home() {
               style={{
                 width: 36, height: 36, background: sidebarOpen ? C.accentBg : 'none',
                 border: sidebarOpen ? `1px solid ${C.accentDim}` : `1px solid transparent`,
-                borderRadius: 9, color: sidebarOpen ? C.accent : C.textMuted,
+                borderRadius: '50%', color: sidebarOpen ? C.accent : C.textMuted,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s', flexShrink: 0,
+                transition: `all ${MOTION.fast} ${MOTION.out}`, flexShrink: 0,
               }}
             >
               <svg width="16" height="13" viewBox="0 0 16 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -155,16 +155,25 @@ export default function Home() {
               </svg>
             </button>
 
-            {/* Logo */}
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: C.accent, letterSpacing: '-0.5px', flexShrink: 0 }}>
-              Ai<span style={{ color: C.textPrimary }}>Prompter</span>
-            </span>
+            {/* Logo mark + wordmark */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: RADIUS.sm, background: C.accent,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                boxShadow: C.btnShadowAccent,
+              }}>
+                <svg width="12" height="12" viewBox="0 0 18 18" fill={C.accentText}><polygon points="5,2 16,9 5,16" /></svg>
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.2px' }}>
+                AiPrompter
+              </span>
+            </div>
 
             {/* Active script title */}
             {activeScript && (
               <span style={{
                 fontSize: 12, color: C.textMuted, borderLeft: `1px solid ${C.border}`,
-                paddingLeft: 10, marginLeft: 2,
+                paddingLeft: 12, marginLeft: 2,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 minWidth: 0, flex: 1,
               }}>
@@ -174,10 +183,10 @@ export default function Home() {
           </div>
 
           {/* Header actions */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
             {/* Status — read time + mirror indicators, moved up from the
                 teleprompter toolbar so everything fits in one header row */}
-            <div className="header-status" style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+            <div className="header-status" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {readTime && (
                 <span style={{ fontSize: 10, color: C.textFaint, whiteSpace: 'nowrap' }}>{readTime} est.</span>
               )}
@@ -185,8 +194,8 @@ export default function Home() {
               {settings.mirrorV && <Badge C={C}>Mirror V</Badge>}
             </div>
 
-            <div style={{ display: 'flex', gap: 5 }}>
-              <HeaderBtn onClick={handleNew} title="⌘N" C={C}>+ New</HeaderBtn>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <HeaderBtn onClick={handleNew} title="⌘N" C={C}>New</HeaderBtn>
               <HeaderBtn onClick={() => setShowImport(true)} accent title="⌘I" C={C}>Import</HeaderBtn>
               {activeScript && <HeaderBtn onClick={() => handleEdit(activeId!)} C={C}>Edit</HeaderBtn>}
               <HeaderIconBtn
@@ -277,14 +286,14 @@ function HeaderIconBtn({ children, onClick, title, C }: {
       title={title}
       style={{
         width: 36, height: 36, background: C.bgCard, border: `1px solid ${C.border}`,
-        color: C.textPrimary, borderRadius: 9, cursor: 'pointer',
+        color: C.textPrimary, borderRadius: '50%', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 0.12s, box-shadow 0.1s',
+        transition: `background ${MOTION.fast} ${MOTION.out}, box-shadow ${MOTION.fast} ${MOTION.out}, transform ${MOTION.fast} ${MOTION.spring}`,
         boxShadow: C.btnShadow, flexShrink: 0,
       }}
-      onMouseDown={e => (e.currentTarget.style.boxShadow = C.btnShadowActive)}
-      onMouseUp={e => (e.currentTarget.style.boxShadow = C.btnShadow)}
-      onMouseLeave={e => (e.currentTarget.style.boxShadow = C.btnShadow)}
+      onMouseDown={e => { e.currentTarget.style.boxShadow = C.btnShadowActive; e.currentTarget.style.transform = 'scale(0.92)' }}
+      onMouseUp={e => { e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
     >
       {children}
     </button>
@@ -303,9 +312,9 @@ function HeaderBtn({ children, onClick, accent, title, C }: {
         background: accent ? C.accent : C.bgCard,
         border: `1px solid ${accent ? C.accentDim : C.border}`,
         color: accent ? C.accentText : C.textPrimary,
-        padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+        padding: '8px 16px', borderRadius: RADIUS.pill, cursor: 'pointer',
         fontSize: 12, fontFamily: 'inherit', fontWeight: accent ? 700 : 500,
-        transition: 'all 0.15s',
+        transition: `all ${MOTION.fast} ${MOTION.out}`,
         boxShadow: accent ? C.btnShadowAccent : C.btnShadow,
         whiteSpace: 'nowrap',
       }}

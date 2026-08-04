@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { parseFile, titleFromFilename } from '@/lib/fileParser'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors } from '@/lib/theme'
+import { getColors, RADIUS, MOTION } from '@/lib/theme'
 
 interface ImportModalProps {
   settings: TeleprompterSettings
@@ -45,24 +45,30 @@ export default function ImportModal({ settings, onImport, onClose }: ImportModal
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
       zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: C.bgPanel, border: `1px solid ${C.border}`, borderRadius: 16,
+        background: C.bgPanel, border: `1px solid ${C.border}`, borderRadius: RADIUS.xl,
         width: '100%', maxWidth: 480, overflow: 'hidden',
+        animation: `popIn ${MOTION.base} ${MOTION.spring}`,
       }}>
         <div style={{
-          padding: '16px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <h2 style={{ fontSize: 16, fontWeight: 500, color: C.textPrimary }}>Import Script</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.textSecondary, cursor: 'pointer', fontSize: 18 }}>✕</button>
+          <h2 style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary }}>Import script</h2>
+          <button onClick={onClose} style={{
+            width: 30, height: 30, background: C.bgCard, border: `1px solid ${C.border}`,
+            borderRadius: '50%', color: C.textSecondary, cursor: 'pointer', fontSize: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: `all ${MOTION.fast} ${MOTION.out}`,
+          }}>✕</button>
         </div>
 
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{
-            background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10,
+            background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: RADIUS.md,
             padding: '12px 14px', fontSize: 12, color: C.textSecondary, lineHeight: 1.7,
           }}>
             <p style={{ color: C.textPrimary, fontWeight: 500, marginBottom: 4 }}>Supported formats</p>
@@ -82,8 +88,8 @@ export default function ImportModal({ settings, onImport, onClose }: ImportModal
             onClick={() => fileInputRef.current?.click()}
             style={{
               border: `2px dashed ${dragging ? C.accent : C.border}`,
-              borderRadius: 12, padding: '36px 20px', textAlign: 'center',
-              cursor: 'pointer', transition: 'all 0.2s',
+              borderRadius: RADIUS.lg, padding: '36px 20px', textAlign: 'center',
+              cursor: 'pointer', transition: `all ${MOTION.base} ${MOTION.out}`,
               background: dragging ? `${C.accentBg}` : 'transparent',
             }}
           >
@@ -91,9 +97,16 @@ export default function ImportModal({ settings, onImport, onClose }: ImportModal
               <p style={{ color: C.accent, fontSize: 14 }}>Reading file…</p>
             ) : (
               <>
-                <p style={{ fontSize: 32, marginBottom: 8 }}>📂</p>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%', background: C.accentBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px',
+                }}>
+                  <svg width="19" height="19" viewBox="0 0 18 18" fill="none" stroke={C.accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 4.5a1 1 0 0 1 1-1h3.5l1.5 2H15a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />
+                  </svg>
+                </div>
                 <p style={{ color: C.textPrimary, fontSize: 14, fontWeight: 500, marginBottom: 4 }}>
-                  Tap to browse or drag & drop
+                  Tap to browse or drag and drop
                 </p>
                 <p style={{ color: C.textMuted, fontSize: 12 }}>.txt · .md · .rtf · .docx · .enex · .pdf</p>
               </>

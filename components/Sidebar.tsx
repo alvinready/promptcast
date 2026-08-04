@@ -2,8 +2,44 @@
 
 import { Script } from '@/lib/storage'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors } from '@/lib/theme'
+import { getColors, RADIUS, MOTION } from '@/lib/theme'
 import { useState, useEffect, useRef } from 'react'
+
+// Small consistent line-icon set — replaces the emoji that used to stand in
+// for these controls, matching the stroke style used in the teleprompter
+// toolbar (IconArrowUp, IconTimer, etc.)
+const IconList = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+    <line x1="1" y1="3" x2="13" y2="3" /><line x1="1" y1="7" x2="13" y2="7" /><line x1="1" y1="11" x2="13" y2="11" />
+  </svg>
+)
+const IconSliders = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+    <line x1="2" y1="2" x2="2" y2="12" /><line x1="7" y1="2" x2="7" y2="12" /><line x1="12" y1="2" x2="12" y2="12" />
+    <circle cx="2" cy="5" r="1.6" fill="currentColor" stroke="none" /><circle cx="7" cy="9" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="4" r="1.6" fill="currentColor" stroke="none" />
+  </svg>
+)
+const IconFolder = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 4.5a1 1 0 0 1 1-1h3.5l1.5 2H15a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" />
+  </svg>
+)
+const IconCloud = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 13.5h8a3 3 0 0 0 0-6 4.5 4.5 0 0 0-8.7-1.4A3.3 3.3 0 0 0 5 13.5z" />
+  </svg>
+)
+const IconMoon = () => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="currentColor"><path d="M12.5 8.7A5.7 5.7 0 0 1 5.3 1.5 5.7 5.7 0 1 0 12.5 8.7z" /></svg>
+)
+const IconSun = () => (
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+    <circle cx="7" cy="7" r="3" /><line x1="7" y1="0.5" x2="7" y2="2" /><line x1="7" y1="12" x2="7" y2="13.5" />
+    <line x1="0.5" y1="7" x2="2" y2="7" /><line x1="12" y1="7" x2="13.5" y2="7" />
+    <line x1="2.3" y1="2.3" x2="3.3" y2="3.3" /><line x1="10.7" y1="10.7" x2="11.7" y2="11.7" />
+    <line x1="2.3" y1="11.7" x2="3.3" y2="10.7" /><line x1="10.7" y1="3.3" x2="11.7" y2="2.3" />
+  </svg>
+)
 
 interface SidebarProps {
   scripts: Script[]
@@ -37,33 +73,44 @@ export default function Sidebar({
       overflow: 'hidden',
       flexShrink: 0,
     }}>
-      {/* Header with tab bar + close button */}
-      <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        {(['scripts', 'settings'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: '13px 0', background: 'none', border: 'none',
-            color: tab === t ? C.accent : C.textMuted, cursor: 'pointer',
-            fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-            letterSpacing: '1px',
-            borderBottom: tab === t ? `2px solid ${C.accent}` : '2px solid transparent',
-            transition: 'color 0.15s, border-color 0.15s',
-          }}>
-            {t === 'scripts' ? '📋 Scripts' : '⚙️ Settings'}
-          </button>
-        ))}
+      {/* Header with segmented tab control + close button */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '12px 12px 10px',
+        borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+      }}>
+        <div style={{
+          flex: 1, display: 'flex', gap: 2, padding: 3, borderRadius: RADIUS.pill,
+          background: C.bgCard, border: `1px solid ${C.border}`,
+        }}>
+          {(['scripts', 'settings'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex: 1, padding: '7px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              background: tab === t ? C.accent : 'transparent', border: 'none',
+              color: tab === t ? C.accentText : C.textMuted, cursor: 'pointer',
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.3px',
+              borderRadius: RADIUS.pill,
+              boxShadow: tab === t ? C.btnShadowAccent : 'none',
+              transition: `all ${MOTION.base} ${MOTION.spring}`,
+            }}>
+              {t === 'scripts' ? <IconList /> : <IconSliders />}
+              {t === 'scripts' ? 'Scripts' : 'Settings'}
+            </button>
+          ))}
+        </div>
         {/* Close sidebar button */}
         <button
           onClick={onClose}
           title="Close sidebar"
           style={{
-            width: 44, background: 'none', border: 'none', borderLeft: `1px solid ${C.border}`,
+            width: 32, height: 32, background: C.bgCard, border: `1px solid ${C.border}`,
+            borderRadius: '50%',
             color: C.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0, transition: 'color 0.15s',
+            justifyContent: 'center', flexShrink: 0, transition: `all ${MOTION.fast} ${MOTION.out}`,
           }}
           onMouseEnter={e => (e.currentTarget.style.color = C.textPrimary)}
           onMouseLeave={e => (e.currentTarget.style.color = C.textMuted)}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
             <line x1="11" y1="3" x2="5" y2="8" />
             <line x1="5" y1="8" x2="11" y2="13" />
           </svg>
@@ -131,8 +178,8 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
       <div style={{ padding: '10px 12px', borderBottom: `1px solid ${C.border}` }}>
         <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 7 }}>Import from</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          <ImportBtn icon="📁" label="File / Notes" onClick={onImport} C={C} />
-          <ImportBtn icon="📄" label="Google Drive" onClick={onGoogleDrive} C={C} />
+          <ImportBtn icon={<IconFolder />} label="File / Notes" onClick={onImport} C={C} />
+          <ImportBtn icon={<IconCloud />} label="Google Drive" onClick={onGoogleDrive} C={C} />
         </div>
         <p style={{ fontSize: 10, color: C.textFaint, marginTop: 7, lineHeight: 1.5 }}>
           Apple Notes: export note as .txt from Share sheet
@@ -178,8 +225,8 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
               style={{
                 background: isPending ? C.dangerBg : isActive ? C.accentBg : C.bgCard,
                 border: `1px solid ${isPending ? C.danger : isActive ? C.accent : C.border}`,
-                borderRadius: 10, marginBottom: 7, cursor: 'pointer',
-                transition: 'all 0.15s', overflow: 'hidden',
+                borderRadius: RADIUS.md, marginBottom: 8, cursor: 'pointer',
+                transition: `all ${MOTION.base} ${MOTION.out}`, overflow: 'hidden',
                 boxShadow: isActive ? `0 0 0 2px ${C.accent}22` : 'none',
               }}
             >
@@ -245,9 +292,9 @@ function ScriptsTab({ scripts, activeId, onSelect, onNew, onEdit, onDelete, onDu
       <div style={{ padding: '10px', borderTop: `1px solid ${C.border}` }}>
         <button onClick={onNew} style={{
           width: '100%', background: C.accent, border: 'none',
-          color: C.accentText, padding: '10px', borderRadius: 9, cursor: 'pointer',
+          color: C.accentText, padding: '11px', borderRadius: RADIUS.pill, cursor: 'pointer',
           fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
-          boxShadow: C.btnShadowAccent, transition: 'opacity 0.15s',
+          boxShadow: C.btnShadowAccent, transition: `all ${MOTION.fast} ${MOTION.out}`,
           letterSpacing: '0.2px',
         }}
           onMouseDown={e => (e.currentTarget.style.opacity = '0.85')}
@@ -301,7 +348,7 @@ function SettingsTab({ settings, onChange, C }: {
   C: ReturnType<typeof getColors>,
 }) {
   const readColors = [
-    { label: 'Default', value: settings.theme === 'light' ? '#1c1c1e' : '#f2f2f7' },
+    { label: 'Default', value: C.defaultTextColor },
     { label: 'Amber', value: '#f5c842' },
     { label: 'Green', value: '#4ade80' },
     { label: 'Blue', value: '#60a5fa' },
@@ -317,17 +364,18 @@ function SettingsTab({ settings, onChange, C }: {
               key={t}
               onClick={() => onChange({ theme: t })}
               style={{
-                flex: 1, padding: '9px 0',
+                flex: 1, padding: '9px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                 background: settings.theme === t ? C.accent : C.bgCard,
                 border: `1px solid ${settings.theme === t ? C.accentDim : C.border}`,
                 color: settings.theme === t ? C.accentText : C.textSecondary,
-                borderRadius: 9, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+                borderRadius: RADIUS.pill, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
                 fontWeight: settings.theme === t ? 700 : 500,
                 boxShadow: settings.theme === t ? C.btnShadowAccent : C.btnShadow,
-                transition: 'all 0.15s',
+                transition: `all ${MOTION.base} ${MOTION.spring}`,
               }}
             >
-              {t === 'dark' ? '🌙 Dark' : '☀️ Light'}
+              {t === 'dark' ? <IconMoon /> : <IconSun />}
+              {t === 'dark' ? 'Dark' : 'Light'}
             </button>
           ))}
         </div>
@@ -353,15 +401,15 @@ function SettingsTab({ settings, onChange, C }: {
           {readColors.map(c => (
             <button key={c.value} onClick={() => onChange({ textColor: c.value })} title={c.label}
               style={{
-                width: 30, height: 30, borderRadius: 8,
+                width: 30, height: 30, borderRadius: '50%',
                 border: settings.textColor === c.value ? `2.5px solid ${C.accent}` : `2px solid ${C.border}`,
-                background: c.value, cursor: 'pointer',
+                background: c.value, cursor: 'pointer', transition: `all ${MOTION.fast} ${MOTION.spring}`,
                 boxShadow: settings.textColor === c.value ? C.btnShadowAccent : C.btnShadow,
               }}
             />
           ))}
           <input type="color" value={settings.textColor} onChange={e => onChange({ textColor: e.target.value })}
-            style={{ width: 30, height: 30, border: `2px solid ${C.border}`, borderRadius: 8, cursor: 'pointer', background: 'none', padding: 0 }}
+            style={{ width: 30, height: 30, border: `2px solid ${C.border}`, borderRadius: '50%', cursor: 'pointer', background: 'none', padding: 0 }}
           />
         </div>
       </Section>
@@ -374,10 +422,10 @@ function SettingsTab({ settings, onChange, C }: {
               background: settings.textAlign === a ? C.accent : C.bgCard,
               border: `1px solid ${settings.textAlign === a ? C.accentDim : C.border}`,
               color: settings.textAlign === a ? C.accentText : C.textSecondary,
-              borderRadius: 8, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
+              borderRadius: RADIUS.pill, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
               fontWeight: settings.textAlign === a ? 700 : 500,
               boxShadow: settings.textAlign === a ? C.btnShadowAccent : C.btnShadow,
-              transition: 'all 0.15s',
+              transition: `all ${MOTION.base} ${MOTION.spring}`,
             }}>
               {a.charAt(0).toUpperCase() + a.slice(1)}
             </button>
@@ -441,11 +489,11 @@ function ToggleRow({ label, checked, onChange, C }: {
         role="switch"
         aria-checked={checked}
         style={{
-          width: 42, height: 26, borderRadius: 13,
+          width: 42, height: 26, borderRadius: RADIUS.pill,
           background: checked ? C.accent : C.bgHover,
           border: `1.5px solid ${checked ? C.accentDim : C.border}`,
           cursor: 'pointer', position: 'relative',
-          transition: 'background 0.22s, border-color 0.22s',
+          transition: `background ${MOTION.base} ${MOTION.out}, border-color ${MOTION.base} ${MOTION.out}`,
           flexShrink: 0,
           boxShadow: checked ? `0 0 0 3px ${C.accent}22` : 'none',
         }}
@@ -456,7 +504,7 @@ function ToggleRow({ label, checked, onChange, C }: {
           boxShadow: '0 1px 4px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)',
           position: 'absolute', top: 2,
           left: checked ? 18 : 2,
-          transition: 'left 0.22s cubic-bezier(0.34, 1.4, 0.64, 1)',
+          transition: `left ${MOTION.base} ${MOTION.spring}`,
         }} />
       </div>
     </div>
@@ -464,20 +512,20 @@ function ToggleRow({ label, checked, onChange, C }: {
 }
 
 function ImportBtn({ icon, label, onClick, C }: {
-  icon: string, label: string, onClick: () => void, C: ReturnType<typeof getColors>
+  icon: React.ReactNode, label: string, onClick: () => void, C: ReturnType<typeof getColors>
 }) {
   return (
     <button onClick={onClick} style={{
       background: C.bgCard, border: `1px solid ${C.border}`, color: C.textPrimary,
-      padding: '9px 4px', borderRadius: 9, cursor: 'pointer', fontSize: 11,
+      padding: '11px 4px', borderRadius: RADIUS.md, cursor: 'pointer', fontSize: 11,
       fontFamily: 'inherit', textAlign: 'center', display: 'flex',
-      flexDirection: 'column', alignItems: 'center', gap: 4, width: '100%',
-      boxShadow: C.btnShadow, fontWeight: 500, transition: 'background 0.12s',
+      flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%',
+      boxShadow: C.btnShadow, fontWeight: 500, transition: `background ${MOTION.fast} ${MOTION.out}`,
     }}
       onMouseEnter={e => (e.currentTarget.style.background = C.bgHover)}
       onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
     >
-      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span style={{ color: C.accent }}>{icon}</span>
       {label}
     </button>
   )
