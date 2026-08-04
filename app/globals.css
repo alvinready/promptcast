@@ -6,8 +6,8 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #0A0A0D;
-  color: #F5F5F8;
+  background: #050506;
+  color: #F8F8FA;
   font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -23,7 +23,7 @@ html, body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3A3A42;
+  background: #3E3E49;
   border-radius: 2px;
 }
 

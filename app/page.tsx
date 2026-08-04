@@ -10,7 +10,7 @@ import {
   Script, loadScripts, saveScripts, createScript, updateScript, deleteScript,
 } from '@/lib/storage'
 import { useTeleprompterSettings } from '@/lib/useSettings'
-import { getColors, RADIUS, MOTION } from '@/lib/theme'
+import { getColors, RADIUS, MOTION, GLASS_BLUR } from '@/lib/theme'
 import { estimateReadTime } from '@/lib/readTime'
 
 export default function Home() {
@@ -129,10 +129,11 @@ export default function Home() {
         fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif",
         overflow: 'hidden',
       }}>
-        {/* Header */}
+        {/* Header — glass panel, distinctly lighter than the near-black app field */}
         <header style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 14px', height: 56, background: C.bgPanel,
+          padding: '0 14px', height: 56, background: C.glassBg,
+          backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
           borderBottom: `1px solid ${C.border}`, flexShrink: 0, gap: 8,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
@@ -285,7 +286,9 @@ function HeaderIconBtn({ children, onClick, title, C }: {
       onClick={onClick}
       title={title}
       style={{
-        width: 36, height: 36, background: C.bgCard, border: `1px solid ${C.border}`,
+        width: 36, height: 36, background: C.glassCard,
+        backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+        border: `1px solid ${C.border}`,
         color: C.textPrimary, borderRadius: '50%', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: `background ${MOTION.fast} ${MOTION.out}, box-shadow ${MOTION.fast} ${MOTION.out}, transform ${MOTION.fast} ${MOTION.spring}`,
@@ -309,7 +312,8 @@ function HeaderBtn({ children, onClick, accent, title, C }: {
       onClick={onClick}
       title={title}
       style={{
-        background: accent ? C.accent : C.bgCard,
+        background: accent ? C.accent : C.glassCard,
+        backdropFilter: accent ? undefined : GLASS_BLUR, WebkitBackdropFilter: accent ? undefined : GLASS_BLUR,
         border: `1px solid ${accent ? C.accentDim : C.border}`,
         color: accent ? C.accentText : C.textPrimary,
         padding: '8px 16px', borderRadius: RADIUS.pill, cursor: 'pointer',

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors, RADIUS, MOTION } from '@/lib/theme'
+import { getColors, RADIUS, MOTION, GLASS_BLUR } from '@/lib/theme'
 
 export interface TeleprompterHandle {
   toggleFullscreen: () => void
@@ -514,11 +514,15 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
         </button>
       )}
 
-      {/* Toolbar — each option gets its own divider and breathing room */}
+      {/* Toolbar — a floating glass section, not an edge-to-edge bar. Each
+          option still gets its own divider and breathing room inside it. */}
+      <div style={{ padding: '10px 12px 0', flexShrink: 0 }}>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px',
-        background: C.bgPanel, borderBottom: `1px solid ${C.border}`,
-        flexWrap: 'wrap', rowGap: 12, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 14, padding: '10px 16px',
+        background: C.glassBg, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+        border: `1px solid ${C.glassBorder}`, borderRadius: RADIUS.xl,
+        boxShadow: '0 8px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        flexWrap: 'wrap', rowGap: 12,
         minHeight: 64, position: 'relative',
       }}>
         {/* Back to top */}
@@ -600,11 +604,13 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
 
         <Divider C={C} />
 
-        {/* Elapsed — a watch-complication style chip */}
+        {/* Elapsed — a watch-complication style chip. Text-only content, so
+            a full pill actually fits it (unlike the Speed block). */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           minWidth: 52, padding: '5px 12px', borderRadius: RADIUS.pill,
-          background: C.bgCard, border: `1px solid ${C.border}`,
+          background: C.glassCard, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+          border: `1px solid ${C.border}`,
           transition: `background ${MOTION.base} ${MOTION.out}, border-color ${MOTION.base} ${MOTION.out}`,
         }}>
           <span style={{
@@ -622,10 +628,14 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
 
         <Divider C={C} />
 
-        {/* Speed group — drag or scroll the wheel to adjust */}
+        {/* Speed group — a rounded block, not a pill: it holds a rectangular
+            wheel, and forcing that into a full capsule was clipping its
+            corners against the curve. Blocks for boxy content, pills for
+            round/text-only content. */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px 6px 14px',
-          borderRadius: RADIUS.pill, background: C.bgCard, border: `1px solid ${C.border}`,
+          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+          borderRadius: RADIUS.lg, background: C.glassCard, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+          border: `1px solid ${C.border}`,
         }}>
           <span style={{ fontSize: 10, color: C.textMuted, letterSpacing: '0.4px', textTransform: 'uppercase' }}>Speed</span>
           <span style={{ fontSize: 15, fontWeight: 700, minWidth: 40, textAlign: 'center', color: C.textPrimary, fontVariantNumeric: 'tabular-nums', fontFamily: 'system-ui, sans-serif' }}>
@@ -647,7 +657,9 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
             disabled={isEnhancing || !text.trim()}
             title={enhancedText ? 'Toggle full script / Ai Simplify view' : 'Simplify script with Ai'}
             style={{
-              background: viewMode === 'bullets' && enhancedText ? C.accent : C.bgCard,
+              background: viewMode === 'bullets' && enhancedText ? C.accent : C.glassCard,
+              backdropFilter: viewMode === 'bullets' && enhancedText ? undefined : GLASS_BLUR,
+              WebkitBackdropFilter: viewMode === 'bullets' && enhancedText ? undefined : GLASS_BLUR,
               border: `1px solid ${viewMode === 'bullets' && enhancedText ? C.accentDim : C.border}`,
               color: viewMode === 'bullets' && enhancedText ? C.accentText : C.textPrimary,
               padding: '9px 18px', borderRadius: RADIUS.pill, cursor: isEnhancing ? 'wait' : 'pointer',
@@ -664,7 +676,8 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           </button>
           {enhancedText && (
             <button onClick={() => { setEnhancedText(null); setViewMode('full') }} title="Clear AI keywords" style={{
-              background: C.bgCard, border: `1px solid ${C.border}`, color: C.textMuted,
+              background: C.glassCard, backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+              border: `1px solid ${C.border}`, color: C.textMuted,
               cursor: 'pointer', fontSize: 12, width: 26, height: 26, lineHeight: 1, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>✕</button>
@@ -681,6 +694,7 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           )}
           {isPlaying && <Badge C={C} active>● LIVE</Badge>}
         </div>
+      </div>
       </div>
 
       {/* Install tip — shown once on iOS when entering fullscreen */}
@@ -916,7 +930,8 @@ function ToolBtn({ children, onClick, title, C, active, size = 34 }: {
       onClick={onClick}
       title={title}
       style={{
-        width: size, height: size, background: active ? C.accentBg : C.bgCard,
+        width: size, height: size, background: active ? C.accentBg : C.glassCard,
+        backdropFilter: active ? undefined : GLASS_BLUR, WebkitBackdropFilter: active ? undefined : GLASS_BLUR,
         border: `1px solid ${active ? C.accentDim : C.border}`,
         color: active ? C.accent : C.textPrimary, borderRadius: '50%', cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -924,7 +939,7 @@ function ToolBtn({ children, onClick, title, C, active, size = 34 }: {
         boxShadow: C.btnShadow, flexShrink: 0,
       }}
       onMouseEnter={e => (e.currentTarget.style.background = C.bgHover)}
-      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : C.bgCard; e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = active ? C.accentBg : C.glassCard; e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
       onMouseDown={e => { e.currentTarget.style.boxShadow = C.btnShadowActive; e.currentTarget.style.transform = 'scale(0.92)' }}
       onMouseUp={e => { e.currentTarget.style.boxShadow = C.btnShadow; e.currentTarget.style.transform = 'scale(1)' }}
     >

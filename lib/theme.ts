@@ -28,63 +28,66 @@ export interface Colors {
   btnShadow: string
   btnShadowActive: string
   btnShadowAccent: string
-  /** Translucent surface for glassy overlays (popovers, countdown, banners) */
+  /** Translucent panel surface for floating glass sections (toolbar, popovers) */
   glassBg: string
   glassBorder: string
+  /** Translucent card surface for buttons/chips that sit on top of a glass panel */
+  glassCard: string
 }
 
-// A single periwinkle-indigo accent carries the whole app — calm neutrals
-// everywhere else, color only where it means something (play, primary
-// actions, active state). Same restrained-glass mood as Opal / Pushr /
-// watchOS: soft near-black or near-white fields, one saturated hue, capsules
-// instead of squares.
+// Two clearly separated dark tones — a true near-black app field and a
+// distinctly lighter ash-charcoal for panels, with an even lighter gray for
+// cards/chips on top of that — so surfaces actually read as layered instead
+// of blurring into each other. One bright, saturated blue (Facebook/Shazam
+// territory, not indigo) carries every primary action.
 const DARK: Colors = {
-  bgApp: '#0A0A0D',
-  bgPanel: '#151519',
-  bgCard: '#1D1D23',
+  bgApp: '#050506',
+  bgPanel: '#18181D',
+  bgCard: '#28282F',
   bgInput: '#1D1D23',
-  bgHover: '#28282F',
-  border: '#28282E',
-  borderStrong: '#3A3A42',
-  textPrimary: '#F5F5F8',
-  textSecondary: '#A9A9B4',
-  textMuted: '#75757F',
-  textFaint: '#48484F',
-  accent: '#5865F5',
-  accentDim: '#3D45B8',
-  accentBg: '#1A1D3D',
+  bgHover: '#34343D',
+  border: '#3E3E49',
+  borderStrong: '#52525F',
+  textPrimary: '#F8F8FA',
+  textSecondary: '#B0B0BC',
+  textMuted: '#7C7C89',
+  textFaint: '#4A4A56',
+  accent: '#2D88FF',
+  accentDim: '#1E63C6',
+  accentBg: '#102341',
   accentText: '#FFFFFF',
   promptBg: '#000000',
-  promptBgAlt: '#0C0C10',
+  promptBgAlt: '#0A0A0D',
   danger: '#FF453A',
-  dangerBg: '#2A1210',
-  dangerText: '#FF6B63',
-  warningBg: '#211A05',
+  dangerBg: '#301613',
+  dangerText: '#FF7A70',
+  warningBg: '#241C06',
   warningBorder: '#4D3B10',
-  warningText: '#E0AC4A',
-  defaultTextColor: '#F5F5F8',
-  btnShadow: '0 2px 5px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
-  btnShadowActive: 'inset 0 2px 4px rgba(0,0,0,0.45)',
-  btnShadowAccent: '0 4px 16px rgba(88,101,245,0.4), 0 1px 3px rgba(0,0,0,0.4)',
-  glassBg: 'rgba(21,21,25,0.78)',
-  glassBorder: 'rgba(255,255,255,0.08)',
+  warningText: '#E5B24F',
+  defaultTextColor: '#F8F8FA',
+  btnShadow: '0 2px 6px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)',
+  btnShadowActive: 'inset 0 2px 4px rgba(0,0,0,0.5)',
+  btnShadowAccent: '0 4px 18px rgba(45,136,255,0.45), 0 1px 3px rgba(0,0,0,0.45)',
+  glassBg: 'rgba(24,24,29,0.66)',
+  glassBorder: 'rgba(255,255,255,0.1)',
+  glassCard: 'rgba(46,46,54,0.62)',
 }
 
 const LIGHT: Colors = {
-  bgApp: '#F4F4F9',
+  bgApp: '#EEEEF3',
   bgPanel: '#FFFFFF',
-  bgCard: '#EFEFF6',
+  bgCard: '#E5E5EE',
   bgInput: '#FFFFFF',
-  bgHover: '#E6E6F0',
-  border: '#E2E2EC',
-  borderStrong: '#C8C8D6',
-  textPrimary: '#17171C',
-  textSecondary: '#55555F',
-  textMuted: '#87879A',
+  bgHover: '#DADAE6',
+  border: '#D6D6E1',
+  borderStrong: '#B9B9C8',
+  textPrimary: '#15151A',
+  textSecondary: '#53535F',
+  textMuted: '#858592',
   textFaint: '#B7B7C4',
-  accent: '#4750E8',
-  accentDim: '#2F37BE',
-  accentBg: '#E8E9FD',
+  accent: '#1877F2',
+  accentDim: '#0F5FD1',
+  accentBg: '#E4F0FF',
   accentText: '#FFFFFF',
   promptBg: '#FFFFFF',
   promptBgAlt: '#FAFAFD',
@@ -94,12 +97,13 @@ const LIGHT: Colors = {
   warningBg: '#FFF8E6',
   warningBorder: '#F0C242',
   warningText: '#8A6412',
-  defaultTextColor: '#17171C',
-  btnShadow: '0 1px 3px rgba(20,20,40,0.08), 0 1px 2px rgba(20,20,40,0.05), inset 0 1px 0 rgba(255,255,255,0.7)',
-  btnShadowActive: 'inset 0 1px 3px rgba(20,20,40,0.12)',
-  btnShadowAccent: '0 4px 14px rgba(71,80,232,0.28), 0 1px 3px rgba(20,20,40,0.12)',
-  glassBg: 'rgba(255,255,255,0.78)',
-  glassBorder: 'rgba(20,20,40,0.06)',
+  defaultTextColor: '#15151A',
+  btnShadow: '0 1px 3px rgba(20,20,40,0.1), 0 1px 2px rgba(20,20,40,0.06), inset 0 1px 0 rgba(255,255,255,0.7)',
+  btnShadowActive: 'inset 0 1px 3px rgba(20,20,40,0.14)',
+  btnShadowAccent: '0 4px 16px rgba(24,119,242,0.32), 0 1px 3px rgba(20,20,40,0.14)',
+  glassBg: 'rgba(255,255,255,0.66)',
+  glassBorder: 'rgba(20,20,40,0.09)',
+  glassCard: 'rgba(255,255,255,0.55)',
 }
 
 export function getColors(theme: ColorTheme): Colors {
@@ -123,3 +127,6 @@ export const MOTION = {
   base: '220ms',
   slow: '360ms',
 }
+
+// Standard blur amount for glass sections — one place to tune it everywhere.
+export const GLASS_BLUR = 'blur(22px) saturate(1.4)'

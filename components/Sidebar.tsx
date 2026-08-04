@@ -2,7 +2,7 @@
 
 import { Script } from '@/lib/storage'
 import { TeleprompterSettings } from '@/lib/useSettings'
-import { getColors, RADIUS, MOTION } from '@/lib/theme'
+import { getColors, RADIUS, MOTION, GLASS_BLUR } from '@/lib/theme'
 import { useState, useEffect, useRef } from 'react'
 
 // Small consistent line-icon set — replaces the emoji that used to stand in
@@ -450,10 +450,16 @@ function SettingsTab({ settings, onChange, C }: {
   )
 }
 
+// Each settings group is now its own bordered glass block with the label as
+// a real header row inside it, instead of bare text floating above content.
 function Section({ label, children, C }: { label: string, children: React.ReactNode, C: ReturnType<typeof getColors> }) {
   return (
-    <div style={{ marginBottom: 22 }}>
-      <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, marginBottom: 9 }}>{label}</p>
+    <div style={{
+      marginBottom: 14, borderRadius: RADIUS.lg, background: C.glassCard,
+      backdropFilter: GLASS_BLUR, WebkitBackdropFilter: GLASS_BLUR,
+      border: `1px solid ${C.border}`, padding: '12px 14px',
+    }}>
+      <p style={{ fontSize: 10, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: 11 }}>{label}</p>
       {children}
     </div>
   )

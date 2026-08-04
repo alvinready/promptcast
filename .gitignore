@@ -28,6 +28,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# stray local scripting artifacts
+shot.mjs
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
