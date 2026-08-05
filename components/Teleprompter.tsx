@@ -571,10 +571,10 @@ const Teleprompter = forwardRef<TeleprompterHandle, TeleprompterProps>(function 
           {isPlaying && (
             <div style={{
               position: 'absolute', inset: -6, borderRadius: '50%',
-              border: '3px solid transparent',
-              borderTopColor: C.accent,
-              borderRightColor: `${C.accent}66`,
-              animation: 'spin 1.3s linear infinite',
+              background: `conic-gradient(${C.accent}40 0deg, ${C.accent}00 72%, ${C.accent}40 100%)`,
+              WebkitMaskImage: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))',
+              maskImage: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))',
+              animation: 'spin 1.8s linear infinite',
               pointerEvents: 'none',
             }} />
           )}
